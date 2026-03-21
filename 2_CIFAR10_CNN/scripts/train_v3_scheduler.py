@@ -27,7 +27,9 @@ def main():
     device = get_device()
     print(f"Using device: {device}")
 
-    # Data
+    # Data — CIFAR-10 standard 2-split (no separate validation set).
+    # Test set is used for early stopping / LR scheduling AND final evaluation.
+    # Acceptable for this benchmark; see README for rationale.
     train_loader, test_loader = get_dataloaders(batch_size=64)
 
     # Model

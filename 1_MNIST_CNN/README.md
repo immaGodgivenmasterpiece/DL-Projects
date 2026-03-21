@@ -76,6 +76,12 @@ Using the formula: `output = (input - kernel + 2*padding) / stride + 1`
 
 ---
 
+## Note on Data Split (No Validation Set)
+
+This project uses only **train (60,000) / test (10,000)** — no separate validation set. The test set is used for both early stopping decisions and final evaluation. This is standard practice for MNIST benchmarks, and at 99.35% accuracy the impact of indirect leakage is negligible. See the [CIFAR-10 project README](../2_CIFAR10_CNN/README.md#note-on-data-split-no-validation-set) for a fuller discussion on when a proper 3-split becomes necessary.
+
+---
+
 ## Key Observations from Confusion Matrix
 
 The model most frequently confuses:

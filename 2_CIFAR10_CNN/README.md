@@ -110,6 +110,18 @@ CIFAR-10 images are 32x32 RGB — more complex than MNIST's 28x28 grayscale. A t
 - **Diminishing returns per LR reduction**: 0.001→0.0005 gave +0.48%, 0.0005→0.00025 gave +0.28%, 0.00025→0.000125 gave nothing — a clear sign the architecture has hit its capacity limit
 - **Overfitting worsened**: BN had reduced the gap to ~8%, but the scheduler let training run longer (32 epochs), pushing the gap back to ~16%. Test accuracy went up slightly, but test loss kept rising — the model was getting more confident on its wrong predictions
 
+### Note on Data Split (No Validation Set)
+
+This project uses only **train (50,000) / test (10,000)** — no separate validation set. The test set is used for both early stopping / LR scheduling decisions and final evaluation. Strictly speaking, this means the test set indirectly influences training, so the reported accuracy could be slightly optimistic.
+
+**Why this is acceptable here:**
+- CIFAR-10 is a **standard benchmark** — nearly all papers and tutorials report test accuracy using this same 2-split setup. Following the community convention keeps results comparable.
+- The test set is **large (10,000 samples)**, so information leakage from validation-based decisions is negligible in practice.
+- Splitting from the train set would **reduce training data** and likely hurt performance without meaningful benefit at this scale.
+
+**When a proper 3-split is required:**
+In the next project (Transfer Learning / Sports Classification), the dataset comes pre-split into `train/valid/test`. There, the **valid set** drives LR scheduling and early stopping, while the **test set** is only used for final evaluation — ensuring a clean, unbiased performance metric.
+
 ### Most Confused Classes
 All three versions consistently struggle with:
 - **cat ↔ dog** (similar body shapes and textures)
