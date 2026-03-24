@@ -10,6 +10,9 @@ __pycache__/
 
 # Claude
 CLAUDE.md
+.agent
+.agents
+.claude
 
 # OS
 .DS_Store
