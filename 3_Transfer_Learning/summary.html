@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project 3: Transfer Learning Summary</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --accent: #3b82f6; --accent2: #8b5cf6; --accent3: #06b6d4;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444; --emerald: #10b981;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --border: #475569;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+  .hero { background: linear-gradient(135deg, #0a2e1a 0%, #0f172a 50%, #1a0a30 100%); padding: 60px 40px; text-align: center; border-bottom: 1px solid var(--border); }
+  .hero .badge { display: inline-block; background: var(--emerald); color: #fff; padding: 4px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; }
+  .hero h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 8px; }
+  .hero h1 span { background: linear-gradient(90deg, var(--emerald), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero .subtitle { color: var(--text2); font-size: 1.15rem; max-width: 650px; margin: 0 auto; }
+
+  .stats-bar { display: flex; justify-content: center; gap: 40px; padding: 32px 40px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 2rem; font-weight: 800; }
+  .stat .num.blue { color: var(--accent); }
+  .stat .num.green { color: var(--green); }
+  .stat .num.purple { color: var(--accent2); }
+  .stat .num.cyan { color: var(--accent3); }
+  .stat .num.emerald { color: var(--emerald); }
+  .stat .label { color: var(--text3); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  .section { margin-bottom: 48px; }
+  .section h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 2px solid var(--emerald); display: inline-block; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  .card h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: var(--accent3); }
+
+  /* Two-phase comparison */
+  .phase-grid { display: grid; grid-template-columns: 1fr 60px 1fr; gap: 0; align-items: center; }
+  @media (max-width: 700px) { .phase-grid { grid-template-columns: 1fr; } .phase-arrow-col { transform: rotate(90deg); } }
+  .phase-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+  .phase-card.v2 { border-color: var(--green); }
+  .phase-arrow-col { text-align: center; font-size: 2rem; color: var(--text3); }
+  .phase-card .phase-name { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+  .phase-card .phase-acc { font-size: 2.6rem; font-weight: 800; margin: 8px 0; }
+  .phase-card .phase-detail { font-size: 0.85rem; color: var(--text2); }
+
+  /* Param comparison */
+  .param-bar-container { margin: 24px 0; }
+  .param-bar-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; }
+  .param-bar-track { background: var(--surface2); border-radius: 6px; height: 24px; overflow: hidden; }
+  .param-bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-size: 0.8rem; font-weight: 600; }
+
+  /* Architecture */
+  .arch-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 16px 0; }
+  .arch-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; text-align: center; min-width: 100px; }
+  .arch-block .layer-name { font-weight: 700; font-size: 0.85rem; color: var(--accent3); }
+  .arch-block .layer-detail { font-size: 0.75rem; color: var(--text2); margin-top: 2px; }
+  .arch-block .shape { font-size: 0.7rem; color: var(--accent); font-family: monospace; margin-top: 4px; background: rgba(59,130,246,0.1); padding: 2px 6px; border-radius: 4px; }
+  .arch-block.frozen { border-color: var(--accent); background: rgba(59,130,246,0.06); }
+  .arch-block.trainable { border-color: var(--green); background: rgba(34,197,94,0.08); }
+  .arch-arrow { color: var(--text3); font-size: 1.2rem; }
+
+  .img-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .img-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .img-card img { width: 100%; display: block; }
+  .img-card .caption { padding: 12px 16px; font-size: 0.9rem; color: var(--text2); }
+
+  .lesson { background: var(--surface); border-left: 3px solid var(--accent2); border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 12px; }
+  .lesson .lesson-title { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .lesson .lesson-body { color: var(--text2); font-size: 0.95rem; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text3); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .footer { text-align: center; padding: 40px; color: var(--text3); font-size: 0.85rem; border-top: 1px solid var(--border); }
+
+  /* Key insight callout */
+  .callout { background: rgba(16,185,129,0.08); border: 1px solid var(--emerald); border-radius: 12px; padding: 20px 24px; margin: 20px 0; }
+  .callout .callout-title { font-weight: 700; color: var(--emerald); margin-bottom: 6px; font-size: 1rem; }
+  .callout p { color: var(--text2); font-size: 0.95rem; }
+
+  /* Study Guide Concepts */
+  .concept { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+  .concept-header { display: flex; align-items: center; gap: 14px; padding: 20px 24px; cursor: pointer; user-select: none; }
+  .concept-header:hover { background: var(--surface2); }
+  .concept-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+  .concept-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0; }
+  .concept-header .one-liner { font-size: 0.85rem; color: var(--text3); margin-top: 2px; }
+  .concept-toggle { margin-left: auto; color: var(--text3); font-size: 1.2rem; transition: transform 0.2s; }
+  .concept.open .concept-toggle { transform: rotate(180deg); }
+  .concept-body { display: none; padding: 0 24px 24px; }
+  .concept.open .concept-body { display: block; }
+  .concept-body p { color: var(--text2); font-size: 0.95rem; margin-bottom: 12px; }
+  .concept-body strong { color: var(--text); }
+  .concept-body .analogy { background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.25); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+  .concept-body .analogy .analogy-label { font-size: 0.75rem; font-weight: 700; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .concept-body .analogy p { margin-bottom: 0; }
+  .concept-body .math-box { background: var(--surface2); border-radius: 8px; padding: 14px 18px; margin: 12px 0; font-family: monospace; font-size: 0.9rem; color: var(--accent3); overflow-x: auto; }
+  .concept-body .why-here { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+  .concept-body .why-here .why-label { font-size: 0.75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .concept-body .why-here p { margin-bottom: 0; }
+
+  /* Sticky Nav */
+  .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,23,42,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { color: var(--text3); text-decoration: none; font-size: 0.82rem; font-weight: 600; padding: 12px 14px; transition: color 0.15s, box-shadow 0.15s; flex-shrink: 0; }
+  .nav a:hover { color: var(--text); }
+  .nav a.active { color: var(--emerald); box-shadow: inset 0 -2px 0 var(--emerald); }
+  .section[id] { scroll-margin-top: 52px; }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a href="#phases">Two Phases</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#dataset">Dataset</a>
+  <a href="#results">Results</a>
+  <a href="#config">Config</a>
+  <a href="#concepts">Concepts</a>
+  <a href="#lessons">Lessons</a>
+  <a href="#journey">Journey</a>
+</nav>
+
+<div class="hero">
+  <div class="badge">Project 3 of 4</div>
+  <h1><span>Transfer Learning</span></h1>
+  <p class="subtitle">Sports Classification (100 classes) with ResNet18. Two-phase approach: freeze the backbone, train the head, then fine-tune everything. From 81% scratch ceiling to 96-98%.</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="num emerald">96.6%</div><div class="label">Fine-tuned Accuracy</div></div>
+  <div class="stat"><div class="num blue">100</div><div class="label">Sports Classes</div></div>
+  <div class="stat"><div class="num purple">11.2M</div><div class="label">Total Parameters</div></div>
+  <div class="stat"><div class="num cyan">13,493</div><div class="label">Training Images</div></div>
+</div>
+
+<div class="container">
+
+  <!-- Key insight -->
+  <div class="callout">
+    <div class="callout-title">The Breakthrough Moment</div>
+    <p>The previous project proved a scratch CNN caps at ~81% on CIFAR-10 (10 classes). Here, ResNet18 pretrained on ImageNet classifies <strong>100 sports</strong> at 93%+ by training only 0.5% of its parameters &mdash; and 96-98% after fine-tuning. Transfer learning doesn't just improve accuracy; it changes what's possible.</p>
+  </div>
+
+  <!-- Two-phase comparison -->
+  <div class="section" id="phases">
+    <h2>Two-Phase Approach</h2>
+    <div class="phase-grid">
+      <div class="phase-card">
+        <div class="phase-name" style="color: var(--accent);">v1: Feature Extraction</div>
+        <div class="phase-acc" style="color: var(--accent);">93.40%</div>
+        <div class="phase-detail">Frozen backbone, only FC layer trained</div>
+        <div class="phase-detail">51,300 trainable params (0.5%)</div>
+        <div class="phase-detail">LR: 0.001 &bull; 16-17 epochs</div>
+      </div>
+      <div class="phase-arrow-col">&rarr;</div>
+      <div class="phase-card v2">
+        <div class="phase-name" style="color: var(--green);">v2: Fine-Tuning</div>
+        <div class="phase-acc" style="color: var(--green);">96.60%</div>
+        <div class="phase-detail">All layers unfrozen, initialized from v1</div>
+        <div class="phase-detail">11M trainable params (100%)</div>
+        <div class="phase-detail">LR: 0.0001 (10x smaller) &bull; 8-12 epochs</div>
+      </div>
+    </div>
+
+    <!-- Trainable params visualization -->
+    <div class="param-bar-container">
+      <div class="param-bar-label"><span style="color: var(--text2);">v1: Trainable parameters</span><span style="color: var(--accent);">51,300 / 11.2M (0.5%)</span></div>
+      <div class="param-bar-track"><div class="param-bar-fill" style="width: 0.5%; min-width: 8px; background: var(--accent);">&nbsp;</div></div>
+    </div>
+    <div class="param-bar-container">
+      <div class="param-bar-label"><span style="color: var(--text2);">v2: Trainable parameters</span><span style="color: var(--green);">11.2M / 11.2M (100%)</span></div>
+      <div class="param-bar-track"><div class="param-bar-fill" style="width: 100%; background: var(--green);">11.2M</div></div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="section" id="architecture">
+    <h2>Architecture: ResNet18 &rarr; SportsClassifier</h2>
+    <div class="card">
+      <div class="arch-flow">
+        <div class="arch-block">
+          <div class="layer-name">Input</div>
+          <div class="layer-detail">224&times;224 RGB</div>
+          <div class="shape">(N, 3, 224, 224)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block frozen">
+          <div class="layer-name">Conv1 + BN</div>
+          <div class="layer-detail">64 filters, k=7, s=2</div>
+          <div class="shape">(N, 64, 112, 112)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block frozen">
+          <div class="layer-name">Layers 1-4</div>
+          <div class="layer-detail">ResNet BasicBlocks</div>
+          <div class="shape">(N, 512, 7, 7)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block frozen">
+          <div class="layer-name">AdaptiveAvgPool</div>
+          <div class="layer-detail">Global average</div>
+          <div class="shape">(N, 512)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block trainable">
+          <div class="layer-name">FC (replaced)</div>
+          <div class="layer-detail">512 &rarr; 100</div>
+          <div class="shape">(N, 100)</div>
+        </div>
+      </div>
+      <p style="text-align:center; font-size: 0.85rem; margin-top: 8px;">
+        <span style="color: var(--accent);">Blue = frozen in v1</span> &nbsp;|&nbsp;
+        <span style="color: var(--green);">Green = always trainable</span> &nbsp;|&nbsp;
+        <span style="color: var(--text3);">v2 unfreezes everything</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Dataset -->
+  <div class="section" id="dataset">
+    <h2>Dataset: 100 Sports Classification</h2>
+    <div class="card">
+      <table>
+        <tr><th>Split</th><th>Images</th><th>Per Class</th><th>Purpose</th></tr>
+        <tr><td>Train</td><td>13,493</td><td>~135</td><td>Model training</td></tr>
+        <tr><td>Validation</td><td>500</td><td>5</td><td>Early stopping & LR decisions</td></tr>
+        <tr><td>Test</td><td>500</td><td>5</td><td>Final evaluation (never seen during training)</td></tr>
+      </table>
+      <p style="color: var(--text3); font-size: 0.85rem; margin-top: 12px;">Proper 3-way split &mdash; validation guides training decisions, test measures true generalization. This is the first project using a validation set separately from the test set.</p>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="section" id="results">
+    <h2>Training Results</h2>
+
+    <h3 style="color: var(--accent); margin-bottom: 12px;">v1 &mdash; Feature Extraction</h3>
+    <div class="img-grid" style="margin-bottom: 32px;">
+      <div class="img-card"><img src="results/v1_feature_extraction/loss_acc_curves.png" alt="v1 curves"><div class="caption">v1: Rapid convergence in first 6 epochs &mdash; only 51K params to tune. Most of the "learning" is already in the frozen backbone.</div></div>
+      <div class="img-card"><img src="results/v1_feature_extraction/confusion_matrix.png" alt="v1 confusion"><div class="caption">v1: 100&times;100 matrix. Mostly diagonal even with frozen features &mdash; ImageNet representations transfer well to sports.</div></div>
+    </div>
+
+    <h3 style="color: var(--green); margin-bottom: 12px;">v2 &mdash; Fine-Tuning</h3>
+    <div class="img-grid" style="margin-bottom: 32px;">
+      <div class="img-card"><img src="results/v2_finetune/loss_acc_curves.png" alt="v2 curves"><div class="caption">v2: Starting from v1's weights, fine-tuning jumps accuracy immediately. Early stopping prevents the model from overfitting to training set.</div></div>
+      <div class="img-card"><img src="results/v2_finetune/confusion_matrix.png" alt="v2 confusion"><div class="caption">v2: Near-perfect diagonal. Only 17 errors on 500 test images. Remaining confusions are context-based (similar sports).</div></div>
+    </div>
+  </div>
+
+  <!-- Training config -->
+  <div class="section" id="config">
+    <h2>Training Configuration Comparison</h2>
+    <div class="card">
+      <table>
+        <tr><th>Parameter</th><th>v1 (Feature Extraction)</th><th>v2 (Fine-Tuning)</th></tr>
+        <tr><td>Learning Rate</td><td>0.001</td><td>0.0001 (10x smaller)</td></tr>
+        <tr><td>Trainable Params</td><td>51,300 (FC only)</td><td>11.2M (all layers)</td></tr>
+        <tr><td>Optimizer</td><td>Adam</td><td>Adam</td></tr>
+        <tr><td>Starting Weights</td><td>ImageNet pretrained</td><td>v1 best checkpoint</td></tr>
+        <tr><td>Early Stopping</td><td>patience=5</td><td>patience=5</td></tr>
+        <tr><td>Augmentation</td><td colspan="2">RandomHorizontalFlip + RandomCrop(224, pad=8) + ImageNet normalization</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Study Guide: Key Concepts -->
+  <div class="section" id="concepts">
+    <h2>Concepts Study Guide</h2>
+
+    <!-- Transfer Learning -->
+    <div class="concept open">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(16,185,129,0.15); color: var(--emerald);">&#x21C5;</div>
+        <div>
+          <h3>Transfer Learning</h3>
+          <div class="one-liner">Reusing a model trained on one task to solve a different but related task</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>Instead of training a model from random weights, you start with a model already trained on a large dataset (like ImageNet's 1.2M images, 1000 classes). The early layers have already learned universal visual features (edges, textures, shapes) that transfer to almost any image task. You only need to adapt the final layers to your specific problem.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine learning to play tennis after years of badminton. You don't start from scratch &mdash; your hand-eye coordination, footwork, and court sense all <em>transfer</em>. You just need to adapt to the heavier racket and different ball physics. Transfer learning works the same way: the "visual coordination" learned on ImageNet transfers to sports classification.</p>
+        </div>
+        <p><strong>When transfer learning works best:</strong></p>
+        <p>&bull; Your dataset is small (ours: 13K images vs ImageNet's 1.2M)<br>
+           &bull; Your task is similar to what the pretrained model learned (both are image classification)<br>
+           &bull; You don't have the compute resources to train a deep network from scratch</p>
+        <div class="math-box">
+          From-scratch CNN on CIFAR-10 (10 classes): 81% ceiling<br>
+          Transfer learning on Sports (100 classes): 93-98%<br><br>
+          More classes, harder task, WAY better results. That's the power of transfer.
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>The previous project proved that a scratch CNN caps at ~81%. Transfer learning shatters this ceiling by leveraging features from a 11M-parameter network pretrained on millions of images. It's how the industry builds real image classifiers &mdash; almost nobody trains from scratch anymore.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Extraction vs Fine-Tuning -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(59,130,246,0.15); color: var(--accent);">&#x2744;</div>
+        <div>
+          <h3>Feature Extraction vs Fine-Tuning</h3>
+          <div class="one-liner">Two strategies for using pretrained models: freeze or unfreeze</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p><strong>Feature Extraction (v1):</strong> Freeze the entire pretrained backbone. Only train the new classification head (FC layer). The backbone acts as a fixed feature extractor &mdash; like plugging in a camera that already knows how to see.</p>
+        <p><strong>Fine-Tuning (v2):</strong> Start from the feature extraction checkpoint, then unfreeze all layers and train everything with a much smaller learning rate. This lets the backbone adapt its features specifically to your task.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p><strong>Feature extraction</strong> is like hiring an experienced photographer (pretrained backbone) and only teaching them what your company considers a "good photo" (new FC head). The photographer's skills are fixed.<br><br><strong>Fine-tuning</strong> is like letting that photographer adjust their techniques specifically for your industry &mdash; they subtly change how they frame shots, handle lighting, etc. The foundation stays, but everything gets slightly customized.</p>
+        </div>
+        <div class="math-box">
+          Feature Extraction (v1):
+          &bull; Trainable: 51,300 / 11.2M params (0.5%)
+          &bull; LR: 0.001 (can be aggressive, only training the head)
+          &bull; Result: 93.4%
+
+          Fine-Tuning (v2):
+          &bull; Trainable: 11.2M / 11.2M params (100%)
+          &bull; LR: 0.0001 (10x smaller to protect pretrained weights)
+          &bull; Result: 96.6% (+3.2% improvement)
+        </div>
+        <p><strong>Always do v1 first, then v2.</strong> Fine-tuning from random weights would destroy the pretrained features. Feature extraction gives the head a stable starting point, then fine-tuning refines the whole model gently.</p>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>We follow the standard 2-phase recipe: v1 establishes 93% with minimal training (only 51K params), then v2 pushes to 96.6% by letting the backbone adapt to sports-specific visual features. This progression demonstrates why both phases exist.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ResNet & Skip Connections -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(234,179,8,0.15); color: var(--yellow);">&#x21AA;</div>
+        <div>
+          <h3>ResNet &amp; Skip Connections</h3>
+          <div class="one-liner">Shortcut connections that let gradients flow directly through deep networks</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>Deeper networks should be more powerful, but in practice, networks deeper than ~20 layers started performing <em>worse</em> due to the degradation problem &mdash; gradients vanish or explode through too many layers. ResNet solves this with <strong>skip (residual) connections</strong>: instead of learning <code>output = F(x)</code>, each block learns <code>output = F(x) + x</code>. The <code>+ x</code> shortcut lets gradients bypass layers entirely.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine a 20-floor building with only stairs (regular deep network). Getting from floor 1 to 20 is exhausting, and messages (gradients) between floors get garbled. ResNet adds an <strong>elevator</strong> (skip connection) alongside the stairs. Important signals can take the elevator directly while each floor still does its processing. The result: even 100-floor buildings work perfectly.</p>
+        </div>
+        <div class="math-box">
+          Regular block: output = F(x)         &larr; if F learns nothing, output = noise<br>
+          Residual block: output = F(x) + x    &larr; if F learns nothing, output = x (identity)<br><br>
+          The "worst case" for a residual block is passing input through unchanged.<br>
+          This makes it safe to stack many layers &mdash; useless layers do no harm.
+        </div>
+        <p><strong>ResNet-18</strong> has 18 layers organized into 4 groups of BasicBlocks, each containing 2 conv layers with a skip connection. It was the 2015 ImageNet winner and remains a standard baseline.</p>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>We use ResNet18 as our pretrained backbone. Its skip connections are why it can be 18 layers deep without suffering from vanishing gradients &mdash; the exact problem that limited our 3-layer CIFAR-10 CNN. The architecture is the backbone; transfer learning is the strategy.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Catastrophic Forgetting -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(239,68,68,0.15); color: var(--red);">&#x26A0;</div>
+        <div>
+          <h3>Catastrophic Forgetting</h3>
+          <div class="one-liner">When fine-tuning destroys the pretrained knowledge instead of adapting it</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>If you fine-tune a pretrained model with a learning rate that's too large, the gradient updates overwhelm the carefully learned weights. The model "forgets" the useful features from ImageNet and effectively becomes a randomly initialized network. The pretrained knowledge is lost.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine an experienced surgeon retraining to specialize in a new procedure. With gentle, focused practice (small LR), they adapt their existing skills. But if you threw them into a boot camp that completely overrides everything they know (large LR), they'd lose their foundational skills and perform worse than a new student. That's catastrophic forgetting.</p>
+        </div>
+        <div class="math-box">
+          v1 (feature extraction) LR: 0.001  &larr; only FC head, can be aggressive<br>
+          v2 (fine-tuning) LR: 0.0001        &larr; 10x smaller to protect backbone<br><br>
+          Rule of thumb: fine-tuning LR should be 3-10x smaller than training LR
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>We used lr=0.0001 for fine-tuning (v2) vs lr=0.001 for feature extraction (v1). This 10x reduction ensures the backbone's ImageNet features are gently adapted, not destroyed. It's one of the most important practical details in transfer learning.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Train/Val/Test Split -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(6,182,212,0.15); color: var(--accent3);">&#x2702;</div>
+        <div>
+          <h3>Train / Validation / Test Split</h3>
+          <div class="one-liner">Three separate datasets, each with a distinct purpose, to prevent data leakage</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p><strong>Training set:</strong> Used to update model weights (the model learns from this).<br>
+        <strong>Validation set:</strong> Used to make decisions <em>during</em> training &mdash; early stopping, LR scheduling, hyperparameter tuning. The model never trains on this data, but your decisions are influenced by it.<br>
+        <strong>Test set:</strong> Touched ONLY once, at the very end, to get the final unbiased performance estimate. No decisions are made based on test results.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p><strong>Training set</strong> = homework problems (you learn from these).<br>
+          <strong>Validation set</strong> = practice exams (you use these to decide if you're ready, adjust study strategy).<br>
+          <strong>Test set</strong> = the final exam (seen exactly once, determines your actual grade).<br><br>
+          If you peek at the final exam while studying, your grade is no longer a fair measure of what you know. That's data leakage.</p>
+        </div>
+        <div class="math-box">
+          Previous projects (MNIST, CIFAR-10): only train/test split<br>
+          This project: train (13,493) / val (500) / test (500)<br><br>
+          Validation guides: early stopping patience, LR scheduling<br>
+          Test measures: true generalization (96.6% final answer)
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>This is the first project with a proper 3-way split. In previous projects, the test set influenced early stopping decisions (a mild form of data leakage). Here, validation and test are separate &mdash; the industry standard for any serious model evaluation.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ImageNet Normalization -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(139,92,246,0.15); color: var(--accent2);">&#x03BC;</div>
+        <div>
+          <h3>ImageNet Normalization</h3>
+          <div class="one-liner">Using the exact mean/std from ImageNet so pretrained features work correctly</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>Pretrained models expect inputs normalized with ImageNet's statistics: <code>mean=[0.485, 0.456, 0.406]</code>, <code>std=[0.229, 0.224, 0.225]</code>. Using different normalization means the pixel values land in unexpected ranges, making all the pretrained features meaningless.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine a translator trained on formal English. If you feed them text in internet slang, they'll produce nonsense &mdash; not because they're bad at translating, but because the input format doesn't match what they learned. ImageNet normalization ensures your images "speak the same language" as the training data.</p>
+        </div>
+        <div class="math-box">
+          transforms.Normalize(<br>
+          &nbsp;&nbsp;mean=[0.485, 0.456, 0.406],  # ImageNet RGB means<br>
+          &nbsp;&nbsp;std=[0.229, 0.224, 0.225]     # ImageNet RGB stds<br>
+          )<br><br>
+          Applied to ALL splits: train, val, and test (this is preprocessing, not augmentation)
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>Our ResNet18 was pretrained on ImageNet. Every pixel value must be normalized with ImageNet's statistics before feeding into the model. Forgetting this would silently produce garbage predictions without any obvious error &mdash; one of the most common transfer learning bugs.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lessons -->
+  <div class="section" id="lessons">
+    <h2>Lessons Learned</h2>
+
+    <div class="lesson">
+      <div class="lesson-title">0.5% of parameters can get you 93%</div>
+      <div class="lesson-body">Feature extraction trains only the final FC layer (51K params out of 11.2M). The pretrained backbone already knows edges, textures, shapes &mdash; you just teach it what those features mean for your task.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Fine-tuning LR must be 10x smaller</div>
+      <div class="lesson-body">A large learning rate (0.001) destroys the pretrained features &mdash; catastrophic forgetting. Using 0.0001 lets the model adapt gently while preserving what it already knows.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Only pass trainable parameters to the optimizer</div>
+      <div class="lesson-body">In v1: <code>optim.Adam(model.resnet.fc.parameters())</code>, not <code>model.parameters()</code>. Passing frozen params wastes memory on optimizer states that will never be used.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">ImageNet normalization is mandatory for pretrained models</div>
+      <div class="lesson-body">The backbone was trained with specific mean/std values. Using different normalization means the features are meaningless &mdash; like speaking a different language to the model.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">3-way splits prevent data leakage</div>
+      <div class="lesson-body">Previous projects used only train/test. Here, validation guides early stopping and hyperparameter choices, while test remains completely untouched until final evaluation. This is the industry standard.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Remaining confusions are semantic, not visual</div>
+      <div class="lesson-body">Errors like "sidecar racing vs motorcycle racing" or "cheerleading vs football" happen because the sports share visual context (same stadium, similar equipment). These need domain knowledge, not better features.</div>
+    </div>
+  </div>
+
+  <!-- Journey so far -->
+  <div class="section" id="journey">
+    <h2>The Journey So Far</h2>
+    <div class="card">
+      <table>
+        <tr><th>Project</th><th>Task</th><th>Accuracy</th><th>Key Insight</th></tr>
+        <tr><td style="color: var(--accent);">1. MNIST CNN</td><td>10 digits</td><td>99.35%</td><td>Learned the fundamentals</td></tr>
+        <tr><td style="color: var(--yellow);">2. CIFAR-10 CNN</td><td>10 objects</td><td>81.04%</td><td>Hit the scratch ceiling</td></tr>
+        <tr><td style="color: var(--green);">3. Transfer Learning</td><td>100 sports</td><td>96.60%</td><td>Pretrained features shatter the ceiling</td></tr>
+      </table>
+      <p style="color: var(--text3); font-size: 0.85rem; margin-top: 12px;">The narrative: harder tasks + better techniques = better results. Each project motivates the next.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Ryan's Deep Learning Portfolio &mdash; Project 3: Transfer Learning (Sports Classification) &mdash; Built with PyTorch + ResNet18
+</div>
+
+<script>
+const sections = document.querySelectorAll('.section[id]');
+const navLinks = document.querySelectorAll('.nav a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`.nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

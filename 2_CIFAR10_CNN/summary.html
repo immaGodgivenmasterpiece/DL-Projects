@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project 2: CIFAR-10 CNN Summary</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --accent: #3b82f6; --accent2: #8b5cf6; --accent3: #06b6d4;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444; --orange: #f97316;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --border: #475569;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+  .hero { background: linear-gradient(135deg, #1a3a2f 0%, #0f172a 50%, #1a1040 100%); padding: 60px 40px; text-align: center; border-bottom: 1px solid var(--border); }
+  .hero .badge { display: inline-block; background: var(--orange); color: #fff; padding: 4px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; }
+  .hero h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 8px; }
+  .hero h1 span { background: linear-gradient(90deg, var(--orange), var(--yellow)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero .subtitle { color: var(--text2); font-size: 1.15rem; max-width: 650px; margin: 0 auto; }
+
+  .stats-bar { display: flex; justify-content: center; gap: 40px; padding: 32px 40px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 2rem; font-weight: 800; }
+  .stat .num.blue { color: var(--accent); }
+  .stat .num.green { color: var(--green); }
+  .stat .num.purple { color: var(--accent2); }
+  .stat .num.orange { color: var(--orange); }
+  .stat .num.cyan { color: var(--accent3); }
+  .stat .label { color: var(--text3); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  .section { margin-bottom: 48px; }
+  .section h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 2px solid var(--orange); display: inline-block; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  .card h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: var(--accent3); }
+
+  /* Version comparison */
+  .version-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  @media (max-width: 800px) { .version-grid { grid-template-columns: 1fr; } }
+  .version-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: relative; }
+  .version-card.best { border-color: var(--green); }
+  .version-card.best::after { content: "BEST"; position: absolute; top: 12px; right: 12px; background: var(--green); color: #000; font-size: 0.7rem; font-weight: 800; padding: 2px 10px; border-radius: 10px; }
+  .version-header { padding: 20px 20px 0; }
+  .version-header .v-name { font-size: 1.3rem; font-weight: 800; }
+  .version-header .v-change { font-size: 0.85rem; color: var(--text3); margin-top: 2px; }
+  .version-body { padding: 16px 20px 20px; }
+  .version-body .v-acc { font-size: 2.4rem; font-weight: 800; }
+  .version-body .v-detail { font-size: 0.85rem; color: var(--text2); margin-top: 4px; }
+
+  /* Progress bar */
+  .progress-track { background: var(--surface2); border-radius: 8px; height: 28px; margin: 20px 0; position: relative; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 8px; display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; font-size: 0.8rem; font-weight: 700; transition: width 1s; }
+  .progress-label { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.8rem; color: var(--text2); z-index: 1; }
+
+  /* Arch */
+  .arch-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 16px 0; }
+  .arch-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; text-align: center; min-width: 100px; }
+  .arch-block .layer-name { font-weight: 700; font-size: 0.85rem; color: var(--accent3); }
+  .arch-block .layer-detail { font-size: 0.75rem; color: var(--text2); margin-top: 2px; }
+  .arch-block .shape { font-size: 0.7rem; color: var(--accent); font-family: monospace; margin-top: 4px; background: rgba(59,130,246,0.1); padding: 2px 6px; border-radius: 4px; }
+  .arch-block.highlight { border-color: var(--green); background: rgba(34,197,94,0.08); }
+  .arch-arrow { color: var(--text3); font-size: 1.2rem; }
+
+  .img-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .img-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .img-card img { width: 100%; display: block; }
+  .img-card .caption { padding: 12px 16px; font-size: 0.9rem; color: var(--text2); }
+
+  .lesson { background: var(--surface); border-left: 3px solid var(--accent2); border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 12px; }
+  .lesson .lesson-title { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .lesson .lesson-body { color: var(--text2); font-size: 0.95rem; }
+
+  .pair-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+  .pair { background: var(--surface2); border-radius: 8px; padding: 14px 20px; text-align: center; }
+  .pair .digits { font-size: 1.2rem; font-weight: 800; color: var(--yellow); }
+  .pair .reason { font-size: 0.82rem; color: var(--text3); margin-top: 4px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text3); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .footer { text-align: center; padding: 40px; color: var(--text3); font-size: 0.85rem; border-top: 1px solid var(--border); }
+
+  /* LR timeline */
+  .lr-timeline { display: flex; align-items: flex-end; gap: 0; height: 100px; margin: 20px 0; }
+  .lr-bar { flex: 1; background: var(--accent); border-radius: 4px 4px 0 0; position: relative; min-width: 40px; margin: 0 2px; }
+  .lr-bar .lr-label { position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; color: var(--text3); white-space: nowrap; }
+  .lr-bar .lr-value { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; color: var(--accent); font-family: monospace; white-space: nowrap; }
+
+  /* Study Guide Concepts */
+  .concept { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+  .concept-header { display: flex; align-items: center; gap: 14px; padding: 20px 24px; cursor: pointer; user-select: none; }
+  .concept-header:hover { background: var(--surface2); }
+  .concept-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+  .concept-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0; }
+  .concept-header .one-liner { font-size: 0.85rem; color: var(--text3); margin-top: 2px; }
+  .concept-toggle { margin-left: auto; color: var(--text3); font-size: 1.2rem; transition: transform 0.2s; }
+  .concept.open .concept-toggle { transform: rotate(180deg); }
+  .concept-body { display: none; padding: 0 24px 24px; }
+  .concept.open .concept-body { display: block; }
+  .concept-body p { color: var(--text2); font-size: 0.95rem; margin-bottom: 12px; }
+  .concept-body strong { color: var(--text); }
+  .concept-body .analogy { background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.25); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+  .concept-body .analogy .analogy-label { font-size: 0.75rem; font-weight: 700; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .concept-body .analogy p { margin-bottom: 0; }
+  .concept-body .math-box { background: var(--surface2); border-radius: 8px; padding: 14px 18px; margin: 12px 0; font-family: monospace; font-size: 0.9rem; color: var(--accent3); overflow-x: auto; }
+  .concept-body .why-here { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+  .concept-body .why-here .why-label { font-size: 0.75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .concept-body .why-here p { margin-bottom: 0; }
+
+  /* Sticky Nav */
+  .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,23,42,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { color: var(--text3); text-decoration: none; font-size: 0.82rem; font-weight: 600; padding: 12px 14px; transition: color 0.15s, box-shadow 0.15s; flex-shrink: 0; }
+  .nav a:hover { color: var(--text); }
+  .nav a.active { color: var(--orange); box-shadow: inset 0 -2px 0 var(--orange); }
+  .section[id] { scroll-margin-top: 52px; }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a href="#versions">Versions</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#lr-schedule">LR Schedule</a>
+  <a href="#results">Results</a>
+  <a href="#hard-pairs">Hard Pairs</a>
+  <a href="#concepts">Concepts</a>
+  <a href="#lessons">Lessons</a>
+  <a href="#next">What's Next</a>
+</nav>
+
+<div class="hero">
+  <div class="badge">Project 2 of 4</div>
+  <h1><span>CIFAR-10 CNN</span></h1>
+  <p class="subtitle">Progressive experiments exposing the ceiling of scratch CNNs. Three versions: baseline &rarr; BatchNorm &rarr; LR Scheduler. Each technique adds measurable gains&mdash;but diminishing returns reveal the need for transfer learning.</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="num orange">81.04%</div><div class="label">Best Accuracy (v3)</div></div>
+  <div class="stat"><div class="num blue">3</div><div class="label">Versions Trained</div></div>
+  <div class="stat"><div class="num purple">+3.73%</div><div class="label">Total Improvement</div></div>
+  <div class="stat"><div class="num cyan">3</div><div class="label">Conv Layers</div></div>
+</div>
+
+<div class="container">
+
+  <!-- Version Comparison -->
+  <div class="section" id="versions">
+    <h2>Version Progression</h2>
+    <div class="version-grid">
+      <div class="version-card">
+        <div class="version-header">
+          <div class="v-name" style="color: var(--accent);">v1 &mdash; Baseline</div>
+          <div class="v-change">Plain Conv + ReLU + Pool</div>
+        </div>
+        <div class="version-body">
+          <div class="v-acc" style="color: var(--accent);">77.31%</div>
+          <div class="v-detail">20 epochs &bull; ~15% overfitting gap</div>
+          <div class="v-detail">Train ~92%, Test 77%</div>
+        </div>
+      </div>
+      <div class="version-card">
+        <div class="version-header">
+          <div class="v-name" style="color: var(--accent2);">v2 &mdash; +BatchNorm</div>
+          <div class="v-change">Conv &rarr; BN &rarr; ReLU &rarr; Pool</div>
+        </div>
+        <div class="version-body">
+          <div class="v-acc" style="color: var(--accent2);">79.48%</div>
+          <div class="v-detail">17 epochs (early stop) &bull; ~8% gap</div>
+          <div class="v-detail" style="color: var(--green);">+2.17% &uarr; &bull; Overfitting halved</div>
+        </div>
+      </div>
+      <div class="version-card best">
+        <div class="version-header">
+          <div class="v-name" style="color: var(--green);">v3 &mdash; +LR Scheduler</div>
+          <div class="v-change">ReduceLROnPlateau (factor=0.5, p=3)</div>
+        </div>
+        <div class="version-body">
+          <div class="v-acc" style="color: var(--green);">81.04%</div>
+          <div class="v-detail">32 epochs (early stop) &bull; ~16% gap</div>
+          <div class="v-detail" style="color: var(--green);">+1.56% &uarr; &bull; Diminishing returns</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress bars -->
+    <div style="margin-top: 24px;">
+      <div class="progress-track">
+        <div class="progress-label">v1: Baseline</div>
+        <div class="progress-fill" style="width: 77.31%; background: var(--accent);">77.31%</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-label">v2: +BatchNorm</div>
+        <div class="progress-fill" style="width: 79.48%; background: var(--accent2);">79.48%</div>
+      </div>
+      <div class="progress-track">
+        <div class="progress-label">v3: +Scheduler</div>
+        <div class="progress-fill" style="width: 81.04%; background: var(--green);">81.04%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="section" id="architecture">
+    <h2>Architecture (v2/v3 with BatchNorm)</h2>
+    <div class="card">
+      <div class="arch-flow">
+        <div class="arch-block">
+          <div class="layer-name">Input</div>
+          <div class="layer-detail">Color Image</div>
+          <div class="shape">(N, 3, 32, 32)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block highlight">
+          <div class="layer-name">Conv1+BN+ReLU+Pool</div>
+          <div class="layer-detail">32 filters, k=3</div>
+          <div class="shape">(N, 32, 16, 16)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block highlight">
+          <div class="layer-name">Conv2+BN+ReLU+Pool</div>
+          <div class="layer-detail">64 filters, k=3</div>
+          <div class="shape">(N, 64, 8, 8)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block highlight">
+          <div class="layer-name">Conv3+BN+ReLU+Pool</div>
+          <div class="layer-detail">128 filters, k=3</div>
+          <div class="shape">(N, 128, 4, 4)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block">
+          <div class="layer-name">FC + Dropout</div>
+          <div class="layer-detail">2048 &rarr; 256</div>
+          <div class="shape">(N, 256)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block">
+          <div class="layer-name">Output</div>
+          <div class="layer-detail">256 &rarr; 10</div>
+          <div class="shape">(N, 10)</div>
+        </div>
+      </div>
+      <p style="text-align:center; color: var(--text3); font-size: 0.85rem; margin-top: 8px;">Green = BatchNorm added in v2 (normalizes activations per-channel per-batch)</p>
+    </div>
+  </div>
+
+  <!-- LR Schedule -->
+  <div class="section" id="lr-schedule">
+    <h2>v3 Learning Rate Schedule</h2>
+    <div class="card">
+      <table>
+        <tr><th>Epoch Range</th><th>Learning Rate</th><th>Effect</th></tr>
+        <tr><td>1 &ndash; 19</td><td style="font-family:monospace;">0.001000</td><td>Initial training phase</td></tr>
+        <tr><td>20 &ndash; 25</td><td style="font-family:monospace;">0.000500</td><td>1st reduction &mdash; +0.48% accuracy gain</td></tr>
+        <tr><td>26 &ndash; 30</td><td style="font-family:monospace;">0.000250</td><td>2nd reduction &mdash; +0.28% gain</td></tr>
+        <tr><td>31 &ndash; 32</td><td style="font-family:monospace;">0.000125</td><td>3rd reduction &mdash; no further gain, early stop</td></tr>
+      </table>
+      <p style="color: var(--text3); font-size: 0.85rem; margin-top: 12px;">Each halving yields less improvement &mdash; a clear sign the architecture itself is the bottleneck, not the optimizer.</p>
+    </div>
+  </div>
+
+  <!-- Results by version -->
+  <div class="section" id="results">
+    <h2>Training Results</h2>
+
+    <h3 style="color: var(--accent); margin-bottom: 12px;">v1 &mdash; Baseline</h3>
+    <div class="img-grid" style="margin-bottom: 32px;">
+      <div class="img-card"><img src="results/v1/loss_acc_curves.png" alt="v1 curves"><div class="caption">v1: Large overfitting gap (~15%) &mdash; train accuracy keeps climbing while test stagnates.</div></div>
+      <div class="img-card"><img src="results/v1/confusion_matrix.png" alt="v1 confusion"><div class="caption">v1: Cat/dog confusion dominates. Many classes above 5% error rate.</div></div>
+    </div>
+
+    <h3 style="color: var(--accent2); margin-bottom: 12px;">v2 &mdash; BatchNorm</h3>
+    <div class="img-grid" style="margin-bottom: 32px;">
+      <div class="img-card"><img src="results/v2_BN/loss_acc_curves.png" alt="v2 curves"><div class="caption">v2: Overfitting gap halved (~8%). BN stabilizes training and enables early stopping at epoch 17.</div></div>
+      <div class="img-card"><img src="results/v2_BN/confusion_matrix.png" alt="v2 confusion"><div class="caption">v2: Slightly improved confusion matrix, but same problem pairs persist.</div></div>
+    </div>
+
+    <h3 style="color: var(--green); margin-bottom: 12px;">v3 &mdash; LR Scheduler</h3>
+    <div class="img-grid" style="margin-bottom: 32px;">
+      <div class="img-card"><img src="results/v3_scheduler/loss_acc_curves.png" alt="v3 curves"><div class="caption">v3: LR reductions create visible "steps" in the curve. Longer training but overfitting returns (~16%).</div></div>
+      <div class="img-card"><img src="results/v3_scheduler/confusion_matrix.png" alt="v3 confusion"><div class="caption">v3: Best confusion matrix, but cat/dog remain fundamentally hard at 32&times;32.</div></div>
+    </div>
+  </div>
+
+  <!-- Hardest classes -->
+  <div class="section" id="hard-pairs">
+    <h2>Hardest Class Pairs (Consistent Across All Versions)</h2>
+    <div class="pair-grid">
+      <div class="pair">
+        <div class="digits">cat &harr; dog</div>
+        <div class="reason">Similar body shapes & textures</div>
+      </div>
+      <div class="pair">
+        <div class="digits">bird &harr; deer</div>
+        <div class="reason">Overlapping backgrounds</div>
+      </div>
+      <div class="pair">
+        <div class="digits">truck &harr; automobile</div>
+        <div class="reason">Same object category</div>
+      </div>
+    </div>
+    <p style="color: var(--text3); font-size: 0.85rem; margin-top: 12px;">These confusions are inherent to 32&times;32 resolution &mdash; even humans struggle. Higher resolution + pretrained features solve this.</p>
+  </div>
+
+  <!-- Study Guide: Key Concepts -->
+  <div class="section" id="concepts">
+    <h2>Concepts Study Guide</h2>
+
+    <!-- Batch Normalization -->
+    <div class="concept open">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(139,92,246,0.15); color: var(--accent2);">&#x2261;</div>
+        <div>
+          <h3>Batch Normalization (BatchNorm)</h3>
+          <div class="one-liner">Normalizes each layer's inputs to stabilize and accelerate training</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>BatchNorm normalizes the outputs of a layer across the current mini-batch to have mean=0 and variance=1. Then it applies two learnable parameters (&gamma; and &beta;) that let the network undo the normalization if it's not helpful. This combats <strong>internal covariate shift</strong> &mdash; the problem where each layer's input distribution keeps changing as earlier layers update.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine a relay race where each runner expects the baton at a certain height. If runner 1 randomly changes their handoff height each lap, runner 2 wastes energy adapting. BatchNorm forces every handoff to happen at a standardized height, so each runner (layer) can focus on their own technique instead of constantly adjusting to unpredictable inputs.</p>
+        </div>
+        <div class="math-box">
+          For each channel c in the batch:<br>
+          &mu;_c = mean of all activations in channel c across the batch<br>
+          &sigma;_c = std of all activations in channel c across the batch<br>
+          x_norm = (x - &mu;_c) / &radic;(&sigma;_c&sup2; + &epsilon;)<br>
+          output = &gamma; * x_norm + &beta; &nbsp;&nbsp;(&gamma;, &beta; are learnable)
+        </div>
+        <p><strong>Training vs Evaluation:</strong> During training, it uses batch statistics. During evaluation, it uses running averages computed over the entire training set. This is another reason <code>model.eval()</code> matters.</p>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>Adding BatchNorm to v2 (Conv&rarr;BN&rarr;ReLU&rarr;Pool) boosted accuracy from 77.31% to 79.48% while <em>halving</em> the overfitting gap (15%&rarr;8%). It's the single most impactful regularization technique we've used &mdash; more effective than Dropout for conv layers.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Learning Rate Scheduling -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(234,179,8,0.15); color: var(--yellow);">&#x2935;</div>
+        <div>
+          <h3>Learning Rate Scheduling (ReduceLROnPlateau)</h3>
+          <div class="one-liner">Automatically shrinks the learning rate when progress stalls</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>A fixed learning rate is a compromise: too large and training overshoots minima; too small and training is slow. <strong>ReduceLROnPlateau</strong> starts with a larger LR for fast initial progress, then automatically reduces it by a factor when the monitored metric stops improving for <code>patience</code> epochs.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine pouring water into a cup. At first, you pour quickly to fill it fast (large LR). As it nears the top, you slow the pour to avoid spilling (smaller LR). ReduceLROnPlateau is like a sensor that says "the cup hasn't gotten fuller in 3 seconds, slow down the pour by half."</p>
+        </div>
+        <div class="math-box">
+          scheduler = ReduceLROnPlateau(optimizer,<br>
+          &nbsp;&nbsp;mode='max',      # monitoring accuracy (higher is better)<br>
+          &nbsp;&nbsp;factor=0.5,      # multiply LR by 0.5 when triggered<br>
+          &nbsp;&nbsp;patience=3       # wait 3 epochs of no improvement<br>
+          )<br><br>
+          0.001 &rarr; 0.0005 &rarr; 0.00025 &rarr; 0.000125 (each halving)
+        </div>
+        <p><strong>Key insight:</strong> The scheduler doesn't just "optimize better" &mdash; it <em>rescues models from premature early stopping</em>. Without it, v2 stopped at epoch 17. With it, v3 trained to epoch 32 because each LR reduction opened a new valley to explore.</p>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>v3 used ReduceLROnPlateau to squeeze +1.56% more accuracy beyond BatchNorm. But diminishing returns per reduction (0.48%&rarr;0.28%&rarr;0%) proved the architecture itself was the bottleneck, not the optimizer settings.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overfitting vs Underfitting -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(239,68,68,0.15); color: var(--red);">&#x2194;</div>
+        <div>
+          <h3>Overfitting vs Underfitting</h3>
+          <div class="one-liner">The central tradeoff in machine learning: memorization vs generalization</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p><strong>Overfitting:</strong> The model memorizes training data patterns (including noise) but fails on new data. Symptom: high train accuracy, much lower test accuracy.<br>
+        <strong>Underfitting:</strong> The model is too simple to capture the real patterns. Symptom: both train and test accuracy are low.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p><strong>Overfitting</strong> is like a student who memorizes every practice exam word-for-word but can't answer rephrased questions. <strong>Underfitting</strong> is like a student who only skimmed the textbook &mdash; they can't answer any questions well. The sweet spot is understanding the <em>concepts</em> behind the examples.</p>
+        </div>
+        <div class="math-box">
+          v1: Train 92% / Test 77% &rarr; 15% gap = significant overfitting<br>
+          v2: Train 87% / Test 79% &rarr; 8% gap  = moderate (BN helped)<br>
+          v3: Train 97% / Test 81% &rarr; 16% gap = overfitting returned<br><br>
+          But v3 has the HIGHEST test accuracy &mdash; overfitting gap alone<br>
+          doesn't tell you which model is best. The absolute test metric does.
+        </div>
+        <p><strong>Tools to fight overfitting:</strong> Dropout, BatchNorm, data augmentation, early stopping, weight decay, more training data, simpler model.</p>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>The v1&rarr;v2&rarr;v3 progression is a masterclass in the overfitting/accuracy tradeoff. v2's BatchNorm reduced the gap but v3's scheduler increased it &mdash; yet v3 was still the best model by test accuracy. The lesson: watch the absolute test metric, not just the gap.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Augmentation -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(34,197,94,0.15); color: var(--green);">&#x21C4;</div>
+        <div>
+          <h3>Data Augmentation</h3>
+          <div class="one-liner">Artificially expanding the training set by applying random transformations</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>Data augmentation applies random transformations (flips, crops, rotations, color jitter) to training images on-the-fly. Each epoch, the model sees slightly different versions of the same images. This acts as a regularizer &mdash; the model can't memorize specific pixel patterns.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine learning to recognize your friend's face. You've only seen 100 photos. Data augmentation is like seeing those same photos in different lighting, from slightly different angles, sometimes flipped &mdash; suddenly your 100 photos feel like 1,000, and you recognize them in any condition.</p>
+        </div>
+        <div class="math-box">
+          transforms.Compose([<br>
+          &nbsp;&nbsp;transforms.RandomHorizontalFlip(),  # 50% chance to mirror<br>
+          &nbsp;&nbsp;transforms.RandomCrop(32, padding=4), # shift up to 4px<br>
+          &nbsp;&nbsp;transforms.ToTensor(),<br>
+          &nbsp;&nbsp;transforms.Normalize(mean, std)<br>
+          ])<br><br>
+          Note: augmentation is ONLY applied to training data, never test/val
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>CIFAR-10 has only 50K training images of 32&times;32 pixels &mdash; much harder than MNIST. RandomHorizontalFlip and RandomCrop help the model generalize without needing more data. These same augmentations carry forward to every future project.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- The "Scratch CNN Ceiling" -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(249,115,22,0.15); color: var(--orange);">&#x2581;</div>
+        <div>
+          <h3>The "Scratch CNN Ceiling"</h3>
+          <div class="one-liner">Why shallow CNNs hit a performance wall on complex images</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>A shallow network (2-3 conv layers) can only learn low-to-mid-level features: edges, corners, simple textures. Distinguishing a cat from a dog requires high-level semantic features (ear shape, fur patterns, body posture) that need many more layers to build up.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine describing the Mona Lisa. With 3 words, you might say "woman, dark, painting." With 30 words, you can describe her pose, expression, background. With 300 words, you capture subtleties. A 3-layer CNN is limited to "3-word descriptions" of images &mdash; enough for digits (simple shapes), not enough for cats vs dogs (complex objects).</p>
+        </div>
+        <div class="math-box">
+          MNIST (1 channel, 10 simple classes): 99.35% with 2 conv layers &#x2714;<br>
+          CIFAR-10 (3 channels, 10 complex classes): 81% with 3 conv layers &#x2718;<br>
+          CIFAR-10 with ResNet-18 (18 layers): 93-95% &#x2714;<br><br>
+          Depth matters more than width for complex visual recognition.
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>This entire project exists to <em>experience</em> the ceiling. We tried every trick (BatchNorm, scheduling) and still couldn't break 81%. This makes the motivation for transfer learning visceral, not theoretical. You don't just read "deeper networks work better" &mdash; you prove it.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lessons -->
+  <div class="section" id="lessons">
+    <h2>Lessons Learned</h2>
+
+    <div class="lesson">
+      <div class="lesson-title">BatchNorm does two things at once</div>
+      <div class="lesson-body">+2.17% accuracy AND halved overfitting gap (15% &rarr; 8%). It stabilizes training so the model generalizes better, not just trains faster.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">LR scheduling rescues premature early stopping</div>
+      <div class="lesson-body">Without the scheduler, v2 early-stopped at epoch 17. The scheduler allowed training to continue 15 more epochs by finding new loss valleys with smaller learning rates.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Diminishing returns reveal architecture bottlenecks</div>
+      <div class="lesson-body">v1&rarr;v2: +2.17%. v2&rarr;v3: +1.56%. The decreasing marginal gain is a clear signal: no amount of training tricks will push a 3-layer CNN past ~81% on CIFAR-10. You need a fundamentally deeper/better architecture.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">The "scratch CNN ceiling" is a real phenomenon</div>
+      <div class="lesson-body">This entire project exists to experience hitting that ceiling firsthand. The 77%&rarr;81% progression makes the motivation for transfer learning visceral, not abstract.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Overfitting vs. accuracy is a tradeoff</div>
+      <div class="lesson-body">v3 achieved the highest test accuracy (81%) but also the worst overfitting gap (16%). Sometimes more accuracy means more overfitting &mdash; the question is whether the absolute test metric improved.</div>
+    </div>
+  </div>
+
+  <!-- What's Next -->
+  <div class="section" id="next">
+    <h2>What's Next</h2>
+    <div class="card">
+      <p style="color: var(--text2);">The ceiling is clear: <strong style="color: var(--text);">~81% on CIFAR-10 with a scratch CNN.</strong> The next project uses <strong style="color: var(--green);">Transfer Learning (ResNet18)</strong> on a harder task (100 sports classes) to show how pretrained features shatter this ceiling: 91% with feature extraction alone, 96-98% with fine-tuning.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Ryan's Deep Learning Portfolio &mdash; Project 2: CIFAR-10 CNN &mdash; Built with PyTorch
+</div>
+
+<script>
+const sections = document.querySelectorAll('.section[id]');
+const navLinks = document.querySelectorAll('.nav a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`.nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

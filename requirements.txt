@@ -1,0 +1,6 @@
+torch>=2.0
+torchvision>=0.15
+matplotlib>=3.5
+numpy>=1.21
+scikit-learn>=1.0
+datasets>=2.0

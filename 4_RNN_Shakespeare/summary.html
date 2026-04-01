@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project 4: RNN Shakespeare Summary</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --accent: #3b82f6; --accent2: #8b5cf6; --accent3: #06b6d4;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444; --rose: #f43f5e;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --border: #475569;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+  .hero { background: linear-gradient(135deg, #2a1a0a 0%, #0f172a 50%, #0a1a2a 100%); padding: 60px 40px; text-align: center; border-bottom: 1px solid var(--border); }
+  .hero .badge { display: inline-block; background: var(--rose); color: #fff; padding: 4px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; }
+  .hero h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 8px; }
+  .hero h1 span { background: linear-gradient(90deg, var(--rose), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero .subtitle { color: var(--text2); font-size: 1.15rem; max-width: 650px; margin: 0 auto; }
+
+  .stats-bar { display: flex; justify-content: center; gap: 40px; padding: 32px 40px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 2rem; font-weight: 800; }
+  .stat .num.blue { color: var(--accent); }
+  .stat .num.green { color: var(--green); }
+  .stat .num.purple { color: var(--accent2); }
+  .stat .num.cyan { color: var(--accent3); }
+  .stat .num.rose { color: var(--rose); }
+  .stat .label { color: var(--text3); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  .section { margin-bottom: 48px; }
+  .section h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 2px solid var(--rose); display: inline-block; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  .card h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: var(--accent3); }
+
+  /* Architecture */
+  .arch-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 16px 0; }
+  .arch-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; text-align: center; min-width: 110px; }
+  .arch-block .layer-name { font-weight: 700; font-size: 0.85rem; color: var(--accent3); }
+  .arch-block .layer-detail { font-size: 0.75rem; color: var(--text2); margin-top: 2px; }
+  .arch-block .shape { font-size: 0.7rem; color: var(--accent); font-family: monospace; margin-top: 4px; background: rgba(59,130,246,0.1); padding: 2px 6px; border-radius: 4px; }
+  .arch-block.rnn { border-color: var(--rose); background: rgba(244,63,94,0.06); }
+  .arch-arrow { color: var(--text3); font-size: 1.2rem; }
+
+  .img-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .img-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .img-card img { width: 100%; display: block; }
+  .img-card .caption { padding: 12px 16px; font-size: 0.9rem; color: var(--text2); }
+
+  .lesson { background: var(--surface); border-left: 3px solid var(--accent2); border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 12px; }
+  .lesson .lesson-title { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .lesson .lesson-body { color: var(--text2); font-size: 0.95rem; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text3); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .footer { text-align: center; padding: 40px; color: var(--text3); font-size: 0.85rem; border-top: 1px solid var(--border); }
+
+  /* Temperature samples */
+  .temp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .temp-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .temp-card .temp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .temp-card .temp-value { font-size: 1.6rem; font-weight: 800; }
+  .temp-card .temp-label { font-size: 0.85rem; color: var(--text3); }
+  .temp-card .sample { font-family: 'Georgia', serif; font-size: 0.9rem; color: var(--text2); background: var(--surface2); padding: 14px; border-radius: 8px; white-space: pre-wrap; line-height: 1.5; }
+  .temp-card .verdict { margin-top: 10px; font-size: 0.85rem; font-weight: 600; }
+
+  /* Perplexity explanation */
+  .perplexity-viz { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; justify-content: center; margin: 20px 0; }
+  .perplexity-box { text-align: center; }
+  .perplexity-box .big-num { font-size: 3rem; font-weight: 800; }
+  .perplexity-box .explain { font-size: 0.85rem; color: var(--text2); max-width: 200px; }
+  .perplexity-arrow { font-size: 2rem; color: var(--text3); }
+
+  /* Callout */
+  .callout { background: rgba(244,63,94,0.08); border: 1px solid var(--rose); border-radius: 12px; padding: 20px 24px; margin: 20px 0; }
+  .callout .callout-title { font-weight: 700; color: var(--rose); margin-bottom: 6px; font-size: 1rem; }
+  .callout p { color: var(--text2); font-size: 0.95rem; }
+
+  /* RNN loop diagram */
+  .rnn-loop { text-align: center; padding: 24px 0; }
+  .rnn-loop .loop-text { font-family: monospace; font-size: 0.9rem; color: var(--text2); line-height: 1.8; }
+  .rnn-loop .highlight { color: var(--rose); font-weight: 700; }
+  .rnn-loop .hidden { color: var(--accent2); font-weight: 700; }
+
+  /* Study Guide Concepts */
+  .concept { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+  .concept-header { display: flex; align-items: center; gap: 14px; padding: 20px 24px; cursor: pointer; user-select: none; }
+  .concept-header:hover { background: var(--surface2); }
+  .concept-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+  .concept-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0; }
+  .concept-header .one-liner { font-size: 0.85rem; color: var(--text3); margin-top: 2px; }
+  .concept-toggle { margin-left: auto; color: var(--text3); font-size: 1.2rem; transition: transform 0.2s; }
+  .concept.open .concept-toggle { transform: rotate(180deg); }
+  .concept-body { display: none; padding: 0 24px 24px; }
+  .concept.open .concept-body { display: block; }
+  .concept-body p { color: var(--text2); font-size: 0.95rem; margin-bottom: 12px; }
+  .concept-body strong { color: var(--text); }
+  .concept-body .analogy { background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.25); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+  .concept-body .analogy .analogy-label { font-size: 0.75rem; font-weight: 700; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .concept-body .analogy p { margin-bottom: 0; }
+  .concept-body .math-box { background: var(--surface2); border-radius: 8px; padding: 14px 18px; margin: 12px 0; font-family: monospace; font-size: 0.9rem; color: var(--accent3); overflow-x: auto; }
+  .concept-body .why-here { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+  .concept-body .why-here .why-label { font-size: 0.75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .concept-body .why-here p { margin-bottom: 0; }
+
+  /* Sticky Nav */
+  .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,23,42,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { color: var(--text3); text-decoration: none; font-size: 0.82rem; font-weight: 600; padding: 12px 14px; transition: color 0.15s, box-shadow 0.15s; flex-shrink: 0; }
+  .nav a:hover { color: var(--text); }
+  .nav a.active { color: var(--rose); box-shadow: inset 0 -2px 0 var(--rose); }
+  .section[id] { scroll-margin-top: 52px; }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a href="#how-rnn">How RNN Works</a>
+  <a href="#architecture">Architecture</a>
+  <a href="#perplexity">Perplexity</a>
+  <a href="#results">Results</a>
+  <a href="#temperature">Temperature</a>
+  <a href="#config">Config</a>
+  <a href="#concepts">Concepts</a>
+  <a href="#lessons">Lessons</a>
+  <a href="#journey">Journey</a>
+</nav>
+
+<div class="hero">
+  <div class="badge">Project 4 of 4</div>
+  <h1><span>RNN Shakespeare</span></h1>
+  <p class="subtitle">Character-level text generation with a vanilla RNN. The model reads Shakespeare one character at a time, learns patterns, and generates new "Shakespeare-like" text. The first step from spatial (CNN) to sequential (RNN) data.</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="num rose">6.33</div><div class="label">Test Perplexity</div></div>
+  <div class="stat"><div class="num blue">1.85</div><div class="label">Test Loss</div></div>
+  <div class="stat"><div class="num purple">329K</div><div class="label">Parameters</div></div>
+  <div class="stat"><div class="num cyan">65</div><div class="label">Unique Characters</div></div>
+  <div class="stat"><div class="num green">31</div><div class="label">Epochs (Early Stop)</div></div>
+</div>
+
+<div class="container">
+
+  <!-- Paradigm shift callout -->
+  <div class="callout">
+    <div class="callout-title">CNN &rarr; RNN: A Paradigm Shift</div>
+    <p>CNNs see entire images at once (spatial). RNNs process data <strong>one step at a time</strong> (sequential), maintaining a hidden state as "memory" of what came before. This project makes that shift concrete: instead of classifying images, the model <em>generates</em> text character by character.</p>
+  </div>
+
+  <!-- How RNN works -->
+  <div class="section" id="how-rnn">
+    <h2>How the RNN Processes Text</h2>
+    <div class="card">
+      <div class="rnn-loop">
+        <div class="loop-text">
+          Input: <span class="highlight">"ROMEO:"</span><br><br>
+          Step 1: <span class="highlight">'R'</span> + <span class="hidden">h<sub>0</sub>(zeros)</span> &rarr; RNN &rarr; <span class="hidden">h<sub>1</sub></span> &rarr; predict next char<br>
+          Step 2: <span class="highlight">'O'</span> + <span class="hidden">h<sub>1</sub></span> &rarr; RNN &rarr; <span class="hidden">h<sub>2</sub></span> &rarr; predict next char<br>
+          Step 3: <span class="highlight">'M'</span> + <span class="hidden">h<sub>2</sub></span> &rarr; RNN &rarr; <span class="hidden">h<sub>3</sub></span> &rarr; predict next char<br>
+          Step 4: <span class="highlight">'E'</span> + <span class="hidden">h<sub>3</sub></span> &rarr; RNN &rarr; <span class="hidden">h<sub>4</sub></span> &rarr; predict next char<br>
+          <span style="color: var(--text3);">...</span><br><br>
+          <span class="hidden">h<sub>t</sub></span> = hidden state = the RNN's "memory" of everything it has read so far
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture -->
+  <div class="section" id="architecture">
+    <h2>Model Architecture</h2>
+    <div class="card">
+      <h3>ShakespeareRNN</h3>
+      <div class="arch-flow">
+        <div class="arch-block">
+          <div class="layer-name">Input</div>
+          <div class="layer-detail">Character indices</div>
+          <div class="shape">(N, seq_len)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block">
+          <div class="layer-name">One-Hot Encode</div>
+          <div class="layer-detail">Sparse 65-dim vectors</div>
+          <div class="shape">(N, seq_len, 65)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block rnn">
+          <div class="layer-name">nn.RNN</div>
+          <div class="layer-detail">hidden=512, 1 layer</div>
+          <div class="shape">(N, seq_len, 512)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block">
+          <div class="layer-name">Linear</div>
+          <div class="layer-detail">512 &rarr; 65 logits</div>
+          <div class="shape">(N, seq_len, 65)</div>
+        </div>
+      </div>
+      <p style="text-align: center; color: var(--text3); font-size: 0.85rem; margin-top: 8px;">Gradient clipping (max_norm=5.0) applied to prevent exploding gradients during BPTT over 100 timesteps</p>
+    </div>
+  </div>
+
+  <!-- Perplexity explanation -->
+  <div class="section" id="perplexity">
+    <h2>Understanding Perplexity</h2>
+    <div class="card">
+      <div class="perplexity-viz">
+        <div class="perplexity-box">
+          <div class="big-num" style="color: var(--text3);">65</div>
+          <div class="explain">Random guessing &mdash; every character equally likely (epoch 0)</div>
+        </div>
+        <div class="perplexity-arrow">&rarr;</div>
+        <div class="perplexity-box">
+          <div class="big-num" style="color: var(--rose);">6.33</div>
+          <div class="explain">Trained model &mdash; narrows next char to ~6 candidates</div>
+        </div>
+        <div class="perplexity-arrow">&rarr;</div>
+        <div class="perplexity-box">
+          <div class="big-num" style="color: var(--green);">1.0</div>
+          <div class="explain">Perfect prediction &mdash; always knows the next character</div>
+        </div>
+      </div>
+      <p style="text-align: center; color: var(--text2); font-size: 0.9rem;">Perplexity = e<sup>loss</sup>. It answers: "how many characters is the model choosing between?" Lower is better.</p>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="section" id="results">
+    <h2>Training Results</h2>
+    <div class="img-grid">
+      <div class="img-card">
+        <img src="results/loss_perplexity_curves.png" alt="Loss and Perplexity Curves">
+        <div class="caption">Loss and perplexity over 31 epochs. Perplexity drops from ~65 (random) to ~6.3. The gap between train and validation suggests some overfitting, but validation loss still improves steadily.</div>
+      </div>
+      <div class="img-card">
+        <img src="results/training_samples.png" alt="Training Samples Progression">
+        <div class="caption">Generated text at each epoch. Early epochs produce gibberish; by epoch 10+ the model learns Shakespeare's formatting (character names, line breaks, basic words).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Temperature comparison -->
+  <div class="section" id="temperature">
+    <h2>Temperature: Controlling Creativity</h2>
+    <p style="color: var(--text2); margin-bottom: 20px;">Temperature scales the logits before softmax: <code>softmax(logits / T)</code>. Lower T = more confident (repetitive). Higher T = more random (creative but messy).</p>
+
+    <div class="temp-grid">
+      <div class="temp-card">
+        <div class="temp-header">
+          <div class="temp-value" style="color: var(--accent);">T = 0.5</div>
+          <div class="temp-label">Conservative</div>
+        </div>
+        <div class="sample">ROMEO:
+I do not stand of such a prince.
+
+KING HENRY VI:
+What, hath some confused
+buthing the consinus.</div>
+        <div class="verdict" style="color: var(--accent);">Coherent structure, real-looking names, but repetitive patterns</div>
+      </div>
+
+      <div class="temp-card">
+        <div class="temp-header">
+          <div class="temp-value" style="color: var(--green);">T = 1.0</div>
+          <div class="temp-label">Balanced</div>
+        </div>
+        <div class="sample">ROMEO:
+Yet, there of mantageth
+Therefore that will supure
+hem, for blood thor will id
+made the eye...</div>
+        <div class="verdict" style="color: var(--green);">More varied vocabulary, occasional spelling errors, good balance</div>
+      </div>
+
+      <div class="temp-card">
+        <div class="temp-header">
+          <div class="temp-value" style="color: var(--red);">T = 1.5</div>
+          <div class="temp-label">Creative</div>
+        </div>
+        <div class="sample">ROMEO:
+I'll do yourknmy to clowe
+bift welt- Cintlize I;
+BnR, holy quontanf; yevour
+gigdal newfosher' lett.</div>
+        <div class="verdict" style="color: var(--red);">Mostly gibberish &mdash; probabilities too flat, picks rare characters</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training config -->
+  <div class="section" id="config">
+    <h2>Training Configuration</h2>
+    <div class="card">
+      <table>
+        <tr><th>Parameter</th><th>Value</th><th>Why</th></tr>
+        <tr><td>Sequence Length</td><td>100 characters</td><td>Context window for BPTT; longer = more context but harder gradients</td></tr>
+        <tr><td>Hidden Size</td><td>512</td><td>Capacity to encode character patterns and short phrases</td></tr>
+        <tr><td>Optimizer</td><td>Adam (lr=0.001)</td><td>Standard choice; works well with gradient clipping</td></tr>
+        <tr><td>Gradient Clipping</td><td>max_norm=5.0</td><td>Essential for RNNs &mdash; prevents exploding gradients in BPTT</td></tr>
+        <tr><td>Batch Size</td><td>64</td><td>Balance of throughput and gradient quality</td></tr>
+        <tr><td>Early Stopping</td><td>patience=5</td><td>Stopped at epoch 31 of 50</td></tr>
+        <tr><td>Data Split</td><td>80/10/10 character-level</td><td>Contiguous text blocks, not shuffled sentences</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- What the model learned -->
+  <div class="section">
+    <h2>What the Model Learned (and Didn't)</h2>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div class="card" style="border-color: var(--green);">
+        <h3 style="color: var(--green);">Learned Well</h3>
+        <ul style="color: var(--text2); padding-left: 20px; font-size: 0.95rem;">
+          <li>Shakespeare's formatting (CHARACTER NAME: + dialogue)</li>
+          <li>English spelling for common short words</li>
+          <li>Line break patterns and punctuation</li>
+          <li>Character names (ROMEO, KING HENRY, etc.)</li>
+          <li>Basic word boundaries and spacing</li>
+        </ul>
+      </div>
+      <div class="card" style="border-color: var(--red);">
+        <h3 style="color: var(--red);">Struggled With</h3>
+        <ul style="color: var(--text2); padding-left: 20px; font-size: 0.95rem;">
+          <li>Long words (spelling breaks after 5-6 chars)</li>
+          <li>Sentence-level coherence</li>
+          <li>Consistent character voice across lines</li>
+          <li>Meaning &mdash; generates patterns, not understanding</li>
+          <li>Long-range dependencies (vanishing gradient problem)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Study Guide: Key Concepts -->
+  <div class="section" id="concepts">
+    <h2>Concepts Study Guide</h2>
+
+    <!-- Recurrent Neural Networks -->
+    <div class="concept open">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(244,63,94,0.15); color: var(--rose);">&#x21BA;</div>
+        <div>
+          <h3>Recurrent Neural Networks (RNNs)</h3>
+          <div class="one-liner">Neural networks with loops &mdash; they process sequences by maintaining a "memory"</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>A CNN sees the entire input at once (an image is a fixed grid). An RNN processes input <strong>one step at a time</strong>, maintaining a <strong>hidden state</strong> that gets updated at each step. This hidden state is the network's "memory" &mdash; it encodes everything the model has seen so far in the sequence.</p>
+        <p>At each timestep t, the RNN takes two inputs: the current input x<sub>t</sub> and the previous hidden state h<sub>t-1</sub>. It produces a new hidden state h<sub>t</sub> and optionally an output. The same weights are shared across all timesteps (weight sharing).</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine reading a sentence word by word. After each word, you update your mental model of what the sentence means (hidden state). When you reach "The cat sat on the ___", your mental model (hidden state) has accumulated enough context to predict "mat." An RNN works the same way, except it reads character by character.</p>
+        </div>
+        <div class="math-box">
+          h_t = tanh(W_xh &middot; x_t + W_hh &middot; h_(t-1) + b_h)<br>
+          y_t = W_hy &middot; h_t + b_y<br><br>
+          W_xh: input-to-hidden weights (shared across all timesteps)<br>
+          W_hh: hidden-to-hidden weights (the "recurrence" &mdash; this is the loop)<br>
+          W_hy: hidden-to-output weights
+        </div>
+        <p><strong>Key difference from feedforward networks:</strong> The W_hh matrix creates a loop &mdash; each timestep's hidden state depends on the previous one. This is what makes the network "recurrent" and gives it memory.</p>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>Text is inherently sequential &mdash; the meaning of a character depends on what came before. RNNs are the natural architecture for sequence tasks. Our model reads Shakespeare character by character, building up context in its hidden state to predict what comes next.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden State -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(139,92,246,0.15); color: var(--accent2);">&#x1D421;</div>
+        <div>
+          <h3>Hidden State</h3>
+          <div class="one-liner">The RNN's running memory &mdash; a vector that encodes everything seen so far</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>The hidden state is a fixed-size vector (512 dimensions in our model) that gets updated at every timestep. It's the RNN's attempt to compress all past information into a single vector. The quality of this compression determines how well the model can predict the next character.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine watching a movie but you can only keep notes on a single Post-it note (fixed-size vector). After each scene, you must update your note to reflect everything important that's happened so far. Early scenes are easy to summarize, but as the movie progresses, you're forced to overwrite older details. This "Post-it note" is the hidden state &mdash; and its limited size is why vanilla RNNs struggle with long sequences.</p>
+        </div>
+        <div class="math-box">
+          h_0 = zeros(512)                     &larr; starts blank<br>
+          h_1 = tanh(W &middot; ['R'] + W &middot; h_0)   &larr; saw 'R'<br>
+          h_2 = tanh(W &middot; ['O'] + W &middot; h_1)   &larr; saw 'RO'<br>
+          h_3 = tanh(W &middot; ['M'] + W &middot; h_2)   &larr; saw 'ROM'<br>
+          ...<br>
+          h_6 = tanh(W &middot; [':'] + W &middot; h_5)   &larr; saw 'ROMEO:' &rarr; predicts newline
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>Our hidden state of size 512 encodes context from up to 100 characters back. After seeing "ROMEO:", the hidden state has learned that a character name followed by a colon means dialogue is about to start. But for longer dependencies (who's speaking 3 lines ago?), the hidden state "forgets" &mdash; motivating LSTMs.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backpropagation Through Time -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(234,179,8,0.15); color: var(--yellow);">&#x21E0;</div>
+        <div>
+          <h3>Backpropagation Through Time (BPTT)</h3>
+          <div class="one-liner">Unrolling the RNN loop and applying backprop across all timesteps</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>To train an RNN, you "unroll" the loop: imagine copying the RNN once per timestep and connecting them in a chain. Now it looks like a very deep feedforward network (100 layers for 100 timesteps) and you can apply standard backpropagation. The catch: gradients must flow backwards through all 100 copies, and they multiply by the W_hh matrix at each step.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine playing a game of telephone with 100 people. The original message (gradient) starts at the end and passes backwards through each person. By the time it reaches person #1, the message is either amplified to screaming (exploding gradients) or faded to a whisper (vanishing gradients). BPTT has the same problem &mdash; information degrades over long chains.</p>
+        </div>
+        <div class="math-box">
+          Unrolled: x_1 &rarr; RNN &rarr; x_2 &rarr; RNN &rarr; ... &rarr; x_100 &rarr; RNN &rarr; loss<br><br>
+          Gradient at step 1 involves multiplying W_hh 99 times:<br>
+          &part;loss/&part;h_1 = &part;loss/&part;h_100 &middot; (W_hh)^99<br><br>
+          If |W_hh| > 1: gradient explodes (values &rarr; &infin;)<br>
+          If |W_hh| < 1: gradient vanishes (values &rarr; 0)
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>Our sequence length of 100 means BPTT unrolls 100 steps. This directly causes the exploding gradient problem (requiring gradient clipping) and the vanishing gradient problem (limiting how far back the model can "learn from"). Both are experienced firsthand in this project.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vanishing & Exploding Gradients -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(239,68,68,0.15); color: var(--red);">&#x26A1;</div>
+        <div>
+          <h3>Vanishing &amp; Exploding Gradients</h3>
+          <div class="one-liner">The fundamental limitation of vanilla RNNs: gradients decay or blow up over long sequences</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p><strong>Exploding gradients:</strong> When the W_hh eigenvalues > 1, gradients grow exponentially through timesteps. Training loss spikes to NaN or infinity. <strong>Solution: gradient clipping.</strong></p>
+        <p><strong>Vanishing gradients:</strong> When eigenvalues < 1, gradients shrink exponentially. Weights for early timesteps barely update &mdash; the model effectively can't learn long-range dependencies. <strong>Solution: LSTMs/GRUs</strong> (gated architectures with explicit memory).</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p><strong>Exploding:</strong> Imagine a microphone pointed at its own speaker (feedback loop). The sound gets louder and louder until it's ear-splitting. Gradient clipping is like putting a volume limiter on the speaker.<br><br><strong>Vanishing:</strong> Imagine whispering a message through 100 rooms. By room 50, nobody can hear it anymore. This is why our model can spell short words but can't maintain coherent sentences &mdash; the "message" from 50 characters ago has faded to nothing.</p>
+        </div>
+        <div class="math-box">
+          Gradient clipping (our solution for exploding):<br>
+          torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)<br><br>
+          If ||gradient|| > 5.0: scale it down to 5.0<br>
+          If ||gradient|| &le; 5.0: leave it unchanged<br><br>
+          For vanishing gradients: no fix for vanilla RNN &rarr; need LSTM
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>We use gradient clipping (max_norm=5.0) to handle exploding gradients. Without it, training diverges within a few epochs. The vanishing gradient problem is visible in our outputs: the model nails short patterns (formatting, short words) but can't maintain coherence over long spans. This is the direct motivation for the next project (LSTM).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- One-Hot Encoding -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(6,182,212,0.15); color: var(--accent3);">&#x2590;</div>
+        <div>
+          <h3>One-Hot Encoding</h3>
+          <div class="one-liner">Representing each category as a sparse binary vector</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>One-hot encoding converts a categorical value (like a character) into a vector where one element is 1 and all others are 0. For 65 unique characters, each becomes a 65-dimensional sparse vector. No similarity is encoded &mdash; 'a' is as "far" from 'b' as it is from 'z'.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine 65 light switches on a wall, one per character. To represent 'A', you flip switch #1 on and leave everything else off. To represent 'B', you flip only switch #2. This is simple and unambiguous, but it tells the model nothing about relationships between characters (like vowels being similar to each other).</p>
+        </div>
+        <div class="math-box">
+          vocab = 65 unique characters<br>
+          'A' &rarr; [1, 0, 0, 0, ..., 0]  (65-dim, all zeros except position 0)<br>
+          'B' &rarr; [0, 1, 0, 0, ..., 0]  (65-dim, all zeros except position 1)<br>
+          'a' &rarr; [0, 0, ..., 1, ..., 0]  (65-dim, all zeros except position 26)<br><br>
+          Distance('A', 'B') = Distance('A', 'z') = &radic;2 &larr; all equidistant!
+        </div>
+        <p><strong>Limitation:</strong> One-hot is intentionally naive. In practice, <strong>embeddings</strong> (learned dense vectors, e.g., 32-dim instead of 65-dim) are used. Embeddings let the model learn that 'a' and 'e' are both vowels, or that 'R' and 'r' represent similar sounds. We used one-hot here for educational clarity.</p>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>We chose one-hot to keep the focus on understanding the RNN itself, not the input representation. The 65-dim input feeds directly into nn.RNN(65, 512). In the LSTM project, we'll switch to embeddings &mdash; understanding why one-hot is limited makes the motivation for embeddings clear.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Temperature Sampling -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(249,115,22,0.15); color: #f97316;">&#x1F321;</div>
+        <div>
+          <h3>Temperature Sampling</h3>
+          <div class="one-liner">Controlling the randomness of text generation by scaling logits before softmax</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>Before converting logits to probabilities via softmax, divide them by a temperature value T. <strong>Low T (&lt;1)</strong> makes the distribution sharper (confident, repetitive). <strong>High T (&gt;1)</strong> makes it flatter (random, creative). <strong>T=1</strong> is the default (unchanged distribution).</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine a music DJ with a popularity dial. At T=0.5, they only play the top 3 hits on repeat (safe, boring). At T=1.0, they mix popular songs with some deeper cuts (balanced). At T=1.5, they play random tracks from their entire library including obscure B-sides (exciting but chaotic). Temperature controls how "adventurous" the model's choices are.</p>
+        </div>
+        <div class="math-box">
+          logits = [2.0, 1.0, 0.5, -1.0]  (raw model output)<br><br>
+          T=0.5: logits/T = [4.0, 2.0, 1.0, -2.0] &rarr; softmax = [0.84, 0.11, 0.04, 0.01]<br>
+          T=1.0: logits/T = [2.0, 1.0, 0.5, -1.0] &rarr; softmax = [0.49, 0.18, 0.11, 0.02]<br>
+          T=1.5: logits/T = [1.3, 0.7, 0.3, -0.7] &rarr; softmax = [0.34, 0.19, 0.13, 0.05]<br><br>
+          Lower T &rarr; top choice dominates &rarr; repetitive but coherent<br>
+          Higher T &rarr; probabilities flatten &rarr; creative but noisy
+        </div>
+        <p><strong>Implementation is literally one line:</strong> <code>probs = softmax(logits / temperature)</code>. This same technique is used in GPT, Claude, and every modern language model.</p>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>We generated Shakespeare at T=0.5, 1.0, and 1.5 to see the full spectrum. T=0.5 produces real-looking character names and dialogue structure. T=1.5 produces creative gibberish. Understanding this tradeoff is essential for anyone working with generative models.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Perplexity -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(59,130,246,0.15); color: var(--accent);">&#x2753;</div>
+        <div>
+          <h3>Perplexity</h3>
+          <div class="one-liner">The number of choices the model is "confused between" &mdash; an intuitive loss metric</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>Perplexity = e<sup>cross-entropy loss</sup>. It converts an abstract loss number into an intuitive question: "how many options is the model effectively choosing between?" A perplexity of 6.33 means "on average, the model narrows the next character down to about 6 candidates."</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine playing 20 Questions. If you can always narrow it down to 6 options, you're doing well (perplexity = 6). If you're stuck choosing between all 65 characters equally, you're clueless (perplexity = 65, random baseline). If you always know the answer with 100% certainty, perplexity = 1 (perfect).</p>
+        </div>
+        <div class="math-box">
+          Perplexity = e^(cross-entropy loss)<br><br>
+          Random guessing: loss = log(65) = 4.17 &rarr; perplexity = 65<br>
+          Our model: loss = 1.85 &rarr; perplexity = e^1.85 = 6.33<br>
+          Perfect model: loss = 0 &rarr; perplexity = 1<br><br>
+          Lower perplexity = better model. Used universally in NLP research.
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>This is a generation task, not classification &mdash; there's no "accuracy" to report. Perplexity is the standard metric for language models. Our model went from perplexity 65 (random) to 6.33 (choosing between ~6 characters), which is the most interpretable way to describe its performance.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Character-Level vs Word-Level -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(34,197,94,0.15); color: var(--green);">&#x2630;</div>
+        <div>
+          <h3>Character-Level vs Word-Level Models</h3>
+          <div class="one-liner">Breaking text into characters vs words changes what the model must learn</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p><strong>Character-level:</strong> Vocabulary is tiny (65 chars). The model must learn spelling, word boundaries, grammar, and meaning &mdash; all from individual characters. Flexible (can generate any word) but struggles with long-range patterns.<br><br>
+        <strong>Word-level:</strong> Vocabulary is large (10K-50K words). Spelling is "free" but rare words become unknown tokens. Each timestep covers more meaning per step.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p><strong>Character-level</strong> is like teaching a child to write by first learning individual letters, then combining them into words, then sentences. Very flexible &mdash; they can spell any word &mdash; but it takes a long time to learn meaningful composition.<br><br><strong>Word-level</strong> is like using flashcards with whole words. You learn faster but you're limited to the words on your cards. Unknown words are a blank stare.</p>
+        </div>
+        <div class="math-box">
+          Character-level (our model):<br>
+          &bull; Vocab size: 65 | Input: one-hot(65)<br>
+          &bull; "ROMEO" = 5 timesteps: R, O, M, E, O<br>
+          &bull; Must learn: R+O+M+E+O = a name<br><br>
+          Word-level (alternative):<br>
+          &bull; Vocab size: ~10,000 | Input: embedding(10000)<br>
+          &bull; "ROMEO" = 1 timestep: token #2847<br>
+          &bull; "ROMEO" is pre-known as a single unit
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>We chose character-level because (1) the vocabulary is tiny and manageable for a first RNN, (2) it forces us to see exactly what the RNN learns at each level (characters &rarr; words &rarr; formatting &rarr; phrases), and (3) it makes the limitations visible &mdash; the model struggles with long words precisely because character-level is harder.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lessons -->
+  <div class="section" id="lessons">
+    <h2>Lessons Learned</h2>
+
+    <div class="lesson">
+      <div class="lesson-title">One-hot encoding is intentionally naive</div>
+      <div class="lesson-body">Each character becomes a sparse 65-dimensional vector. No character similarity is encoded &mdash; the RNN must learn all relationships from scratch. This is educational but inefficient; embeddings (learned dense vectors) are the real-world solution.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Gradient clipping is non-negotiable for RNNs</div>
+      <div class="lesson-body">During BPTT, gradients multiply by the hidden-to-hidden weight matrix at each of 100 timesteps. Without clipping (max_norm=5.0), training diverges within a few epochs &mdash; the exploding gradient problem experienced firsthand.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Temperature is a single-line trick with massive impact</div>
+      <div class="lesson-body"><code>logits / temperature</code> before softmax is the entire implementation. T=0.5 sharpens the distribution (safe, repetitive), T=1.5 flattens it (creative, chaotic). This same technique is used in GPT and every modern language model.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Perplexity makes loss interpretable</div>
+      <div class="lesson-body">A loss of 1.85 is abstract. Perplexity of 6.33 means "the model is choosing between ~6 characters." This metric is intuitive, comparable across models, and used universally in NLP research.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">RNN limitations are architectural, not training-related</div>
+      <div class="lesson-body">The model learns spelling and formatting well but can't maintain coherence over long spans. This isn't a data or hyperparameter problem &mdash; it's the vanishing gradient problem inherent to vanilla RNNs. This is exactly why LSTMs were invented.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Custom Datasets are straightforward in PyTorch</div>
+      <div class="lesson-body">Building <code>ShakespeareDataset</code> with just <code>__len__</code> and <code>__getitem__</code> was simple. DataLoader doesn't care about content format &mdash; it just needs to know how many samples exist and how to fetch one.</div>
+    </div>
+  </div>
+
+  <!-- Full journey -->
+  <div class="section" id="journey">
+    <h2>The Full Journey</h2>
+    <div class="card">
+      <table>
+        <tr><th>Project</th><th>Domain</th><th>Key Metric</th><th>Architecture Highlight</th></tr>
+        <tr><td style="color: var(--accent);">1. MNIST CNN</td><td>Image Classification</td><td>99.35% acc</td><td>Conv + Pool + FC basics</td></tr>
+        <tr><td style="color: var(--yellow);">2. CIFAR-10 CNN</td><td>Image Classification</td><td>81.04% acc</td><td>BatchNorm, LR Scheduler, scratch ceiling</td></tr>
+        <tr><td style="color: var(--green);">3. Transfer Learning</td><td>Image Classification</td><td>96.60% acc</td><td>ResNet18, freeze/unfreeze, fine-tuning</td></tr>
+        <tr><td style="color: var(--rose);">4. RNN Shakespeare</td><td>Text Generation</td><td>6.33 perplexity</td><td>Sequential processing, hidden state, BPTT</td></tr>
+      </table>
+      <p style="color: var(--text3); font-size: 0.85rem; margin-top: 12px;">From spatial to sequential. From classification to generation. Each project builds on the limitations of the last.</p>
+    </div>
+  </div>
+
+  <!-- What's next -->
+  <div class="section">
+    <h2>What's Next</h2>
+    <div class="card">
+      <p style="color: var(--text2);">The vanilla RNN's biggest weakness &mdash; <strong style="color: var(--text);">vanishing gradients killing long-range memory</strong> &mdash; is exactly what LSTMs solve. The next project uses LSTM cells with gates (forget, input, output) that control information flow, enabling the model to remember across much longer sequences.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Ryan's Deep Learning Portfolio &mdash; Project 4: RNN Shakespeare (Character-Level Generation) &mdash; Built with PyTorch
+</div>
+
+<script>
+const sections = document.querySelectorAll('.section[id]');
+const navLinks = document.querySelectorAll('.nav a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`.nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

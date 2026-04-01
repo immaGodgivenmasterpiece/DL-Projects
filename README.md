@@ -52,6 +52,20 @@ Each project answers:
 
 ---
 
+## Setup
+
+```bash
+git clone https://github.com/your-username/DL-Projects.git
+cd DL-Projects
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Each project auto-downloads its dataset on first run. See individual project READMEs for details.
+
+---
+
 ## Background
 
 Built after reading:

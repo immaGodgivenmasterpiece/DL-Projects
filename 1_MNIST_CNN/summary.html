@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project 1: MNIST CNN Summary</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --accent: #3b82f6; --accent2: #8b5cf6; --accent3: #06b6d4;
+    --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --border: #475569;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1a1040 100%); padding: 60px 40px; text-align: center; border-bottom: 1px solid var(--border); }
+  .hero .badge { display: inline-block; background: var(--accent); color: #fff; padding: 4px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-bottom: 16px; }
+  .hero h1 { font-size: 2.8rem; font-weight: 800; margin-bottom: 8px; }
+  .hero h1 span { background: linear-gradient(90deg, var(--accent), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero .subtitle { color: var(--text2); font-size: 1.15rem; max-width: 600px; margin: 0 auto; }
+
+  /* Stats bar */
+  .stats-bar { display: flex; justify-content: center; gap: 40px; padding: 32px 40px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 2rem; font-weight: 800; }
+  .stat .num.blue { color: var(--accent); }
+  .stat .num.green { color: var(--green); }
+  .stat .num.purple { color: var(--accent2); }
+  .stat .num.cyan { color: var(--accent3); }
+  .stat .label { color: var(--text3); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+  /* Container */
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+
+  /* Section */
+  .section { margin-bottom: 48px; }
+  .section h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); display: inline-block; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+  .card h3 { font-size: 1.15rem; font-weight: 600; margin-bottom: 12px; color: var(--accent3); }
+
+  /* Architecture */
+  .arch-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 20px 0; }
+  .arch-block { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; text-align: center; min-width: 120px; }
+  .arch-block .layer-name { font-weight: 700; font-size: 0.95rem; color: var(--accent3); }
+  .arch-block .layer-detail { font-size: 0.8rem; color: var(--text2); margin-top: 4px; }
+  .arch-block .shape { font-size: 0.75rem; color: var(--accent); font-family: monospace; margin-top: 6px; background: rgba(59,130,246,0.1); padding: 2px 8px; border-radius: 4px; }
+  .arch-arrow { color: var(--text3); font-size: 1.4rem; }
+
+  /* Image grid */
+  .img-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .img-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .img-card img { width: 100%; display: block; }
+  .img-card .caption { padding: 12px 16px; font-size: 0.9rem; color: var(--text2); }
+
+  /* Lessons */
+  .lesson { background: var(--surface); border-left: 3px solid var(--accent2); border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 12px; }
+  .lesson .lesson-title { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .lesson .lesson-body { color: var(--text2); font-size: 0.95rem; }
+
+  /* Confused pairs */
+  .pair-grid { display: flex; gap: 16px; flex-wrap: wrap; }
+  .pair { background: var(--surface2); border-radius: 8px; padding: 14px 20px; text-align: center; }
+  .pair .digits { font-size: 1.8rem; font-weight: 800; color: var(--yellow); }
+  .pair .reason { font-size: 0.82rem; color: var(--text3); margin-top: 4px; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--text3); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  td { color: var(--text); }
+
+  /* Footer */
+  .footer { text-align: center; padding: 40px; color: var(--text3); font-size: 0.85rem; border-top: 1px solid var(--border); }
+
+  /* Study Guide Concepts */
+  .concept { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; }
+  .concept-header { display: flex; align-items: center; gap: 14px; padding: 20px 24px; cursor: pointer; user-select: none; }
+  .concept-header:hover { background: var(--surface2); }
+  .concept-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+  .concept-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); margin: 0; }
+  .concept-header .one-liner { font-size: 0.85rem; color: var(--text3); margin-top: 2px; }
+  .concept-toggle { margin-left: auto; color: var(--text3); font-size: 1.2rem; transition: transform 0.2s; }
+  .concept.open .concept-toggle { transform: rotate(180deg); }
+  .concept-body { display: none; padding: 0 24px 24px; }
+  .concept.open .concept-body { display: block; }
+  .concept-body p { color: var(--text2); font-size: 0.95rem; margin-bottom: 12px; }
+  .concept-body strong { color: var(--text); }
+  .concept-body .analogy { background: rgba(139,92,246,0.08); border: 1px solid rgba(139,92,246,0.25); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+  .concept-body .analogy .analogy-label { font-size: 0.75rem; font-weight: 700; color: var(--accent2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .concept-body .analogy p { margin-bottom: 0; }
+  .concept-body .math-box { background: var(--surface2); border-radius: 8px; padding: 14px 18px; margin: 12px 0; font-family: monospace; font-size: 0.9rem; color: var(--accent3); overflow-x: auto; }
+  .concept-body .why-here { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 8px; padding: 14px 18px; margin: 12px 0; }
+  .concept-body .why-here .why-label { font-size: 0.75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .concept-body .why-here p { margin-bottom: 0; }
+
+  /* Sticky Nav */
+  .nav { position: sticky; top: 0; z-index: 100; background: rgba(15,23,42,0.92); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; gap: 0; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { color: var(--text3); text-decoration: none; font-size: 0.82rem; font-weight: 600; padding: 12px 14px; transition: color 0.15s, box-shadow 0.15s; flex-shrink: 0; }
+  .nav a:hover { color: var(--text); }
+  .nav a.active { color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+  .section[id] { scroll-margin-top: 52px; }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a href="#architecture">Architecture</a>
+  <a href="#config">Config</a>
+  <a href="#results">Results</a>
+  <a href="#hard-pairs">Hard Pairs</a>
+  <a href="#concepts">Concepts</a>
+  <a href="#lessons">Lessons</a>
+  <a href="#next">What's Next</a>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="badge">Project 1 of 4</div>
+  <h1><span>MNIST CNN</span></h1>
+  <p class="subtitle">From-scratch CNN for handwritten digit classification. The foundation project: understanding convolutions, pooling, dropout, and the PyTorch training loop.</p>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat"><div class="num green">99.35%</div><div class="label">Test Accuracy</div></div>
+  <div class="stat"><div class="num blue">2</div><div class="label">Conv Layers</div></div>
+  <div class="stat"><div class="num purple">13</div><div class="label">Epochs (Early Stop)</div></div>
+  <div class="stat"><div class="num cyan">~107K</div><div class="label">Parameters</div></div>
+</div>
+
+<div class="container">
+
+  <!-- Architecture -->
+  <div class="section" id="architecture">
+    <h2>Model Architecture</h2>
+    <div class="card">
+      <h3>SimpleCNN</h3>
+      <div class="arch-flow">
+        <div class="arch-block">
+          <div class="layer-name">Input</div>
+          <div class="layer-detail">Grayscale Image</div>
+          <div class="shape">(N, 1, 28, 28)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block">
+          <div class="layer-name">Conv1 + ReLU + Pool</div>
+          <div class="layer-detail">32 filters, k=3, pad=1</div>
+          <div class="shape">(N, 32, 14, 14)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block">
+          <div class="layer-name">Conv2 + ReLU + Pool</div>
+          <div class="layer-detail">64 filters, k=3, pad=1</div>
+          <div class="shape">(N, 64, 7, 7)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block">
+          <div class="layer-name">Flatten + FC</div>
+          <div class="layer-detail">3136 &rarr; 128 + Dropout(0.5)</div>
+          <div class="shape">(N, 128)</div>
+        </div>
+        <div class="arch-arrow">&rarr;</div>
+        <div class="arch-block">
+          <div class="layer-name">Output</div>
+          <div class="layer-detail">128 &rarr; 10 logits</div>
+          <div class="shape">(N, 10)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hyperparameters -->
+  <div class="section" id="config">
+    <h2>Training Configuration</h2>
+    <div class="card">
+      <table>
+        <tr><th>Parameter</th><th>Value</th><th>Why</th></tr>
+        <tr><td>Optimizer</td><td>Adam (lr=0.001)</td><td>Faster convergence than SGD for this simple task</td></tr>
+        <tr><td>Loss</td><td>CrossEntropyLoss</td><td>Standard for multi-class classification</td></tr>
+        <tr><td>Batch Size</td><td>64</td><td>Good balance of speed and gradient stability</td></tr>
+        <tr><td>Dropout</td><td>0.5 on FC layer</td><td>Prevents overfitting; without it, train acc diverges from test</td></tr>
+        <tr><td>Early Stopping</td><td>patience=3</td><td>Stopped at epoch 13; best checkpoint at epoch 10</td></tr>
+        <tr><td>Data Split</td><td>60K train / 10K test</td><td>Standard MNIST split; large test set is reliable</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="section" id="results">
+    <h2>Training Results</h2>
+    <div class="img-grid">
+      <div class="img-card">
+        <img src="results/loss_acc_curves.png" alt="Loss and Accuracy Curves">
+        <div class="caption">Loss and accuracy curves over 13 epochs. Test accuracy plateaus around epoch 10 while train continues rising &mdash; the classic overfitting signal that triggers early stopping.</div>
+      </div>
+      <div class="img-card">
+        <img src="results/confusion_matrix.png" alt="Confusion Matrix">
+        <div class="caption">10&times;10 confusion matrix. Nearly diagonal &mdash; most errors cluster around visually similar digit pairs.</div>
+      </div>
+    </div>
+    <div style="margin-top: 20px;">
+      <div class="img-card" style="max-width: 600px;">
+        <img src="results/wrong_predictions.png" alt="Wrong Predictions">
+        <div class="caption">Gallery of 16 misclassified digits. Many are genuinely ambiguous even to humans.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Most confused -->
+  <div class="section" id="hard-pairs">
+    <h2>Hardest Digit Pairs</h2>
+    <div class="pair-grid">
+      <div class="pair">
+        <div class="digits">4 &harr; 9</div>
+        <div class="reason">Similar loop shapes</div>
+      </div>
+      <div class="pair">
+        <div class="digits">3 &rarr; 5</div>
+        <div class="reason">Similar curve structure</div>
+      </div>
+      <div class="pair">
+        <div class="digits">7 &rarr; 2</div>
+        <div class="reason">Angled strokes overlap</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Study Guide: Key Concepts -->
+  <div class="section" id="concepts">
+    <h2>Concepts Study Guide</h2>
+
+    <!-- Convolution -->
+    <div class="concept open">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(59,130,246,0.15); color: var(--accent);">&#x25A6;</div>
+        <div>
+          <h3>Convolution (Conv2d)</h3>
+          <div class="one-liner">A sliding filter that detects local patterns in the input</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>A convolution slides a small filter (kernel) across the input image, computing a dot product at each position. Each filter learns to detect a specific pattern &mdash; edges, corners, textures, etc.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine reading a page with a magnifying glass. You scan a small area at a time (the kernel), looking for specific patterns. One magnifying glass might highlight vertical lines, another might highlight curves. Together, dozens of these "magnifying glasses" (filters) capture everything on the page.</p>
+        </div>
+        <p><strong>Key parameters:</strong></p>
+        <p>&bull; <strong>in_channels / out_channels</strong> &mdash; how many input feature maps go in, how many filters (output maps) come out.<br>
+           &bull; <strong>kernel_size</strong> &mdash; the size of the sliding window (3&times;3 is most common).<br>
+           &bull; <strong>padding</strong> &mdash; adding zeros around the border so the output keeps the same spatial size.</p>
+        <div class="math-box">
+          Output size = (Input + 2&times;padding - kernel_size) / stride + 1<br>
+          Example: (28 + 2&times;1 - 3) / 1 + 1 = 28 &nbsp;&rarr;&nbsp; same size with padding=1
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>Conv layers are the backbone of any CNN. Our 2 conv layers extract increasingly abstract features: layer 1 finds edges, layer 2 combines edges into digit shapes.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ReLU -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(34,197,94,0.15); color: var(--green);">&#x2215;</div>
+        <div>
+          <h3>ReLU (Rectified Linear Unit)</h3>
+          <div class="one-liner">The simplest nonlinearity: keep positives, zero out negatives</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>ReLU applies <code>f(x) = max(0, x)</code> element-wise. Without a nonlinear activation, stacking multiple linear layers would collapse into a single linear transformation &mdash; the network couldn't learn complex patterns.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Think of a neuron that only "fires" when excited. If the signal is positive (interesting pattern detected), pass it through. If negative (not relevant), shut it off completely. This simple on/off behavior, when combined across thousands of neurons, creates powerful pattern recognition.</p>
+        </div>
+        <div class="math-box">
+          ReLU(x) = max(0, x)<br>
+          ReLU(-3) = 0 &nbsp;|&nbsp; ReLU(0) = 0 &nbsp;|&nbsp; ReLU(5) = 5
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>ReLU is applied after every Conv layer and the first FC layer. It's the industry default because it's fast, simple, and avoids the vanishing gradient problem that plagues sigmoid/tanh in deep networks.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MaxPooling -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(234,179,8,0.15); color: var(--yellow);">&#x25F0;</div>
+        <div>
+          <h3>MaxPooling</h3>
+          <div class="one-liner">Downsamples by keeping only the strongest activation in each region</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>MaxPool2d(2) slides a 2&times;2 window across the feature map and keeps only the maximum value. This halves the spatial dimensions (H and W), reducing computation and making the model invariant to small translations.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine you divided a photo into 2&times;2 pixel blocks. From each block, you only keep the brightest pixel. You lose fine detail but keep the important structure &mdash; and the image is now 1/4 the size. This is exactly what MaxPooling does to feature maps.</p>
+        </div>
+        <div class="math-box">
+          Input: (N, 32, 28, 28) &rarr; MaxPool2d(2) &rarr; (N, 32, 14, 14)<br>
+          Spatial dims halved: 28/2 = 14. Channels unchanged.
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>After each Conv+ReLU, we pool to shrink the feature map. This creates a hierarchy: early layers see fine details (14&times;14), later layers see abstract patterns (7&times;7). It also adds translation invariance &mdash; a digit shifted by 1 pixel still activates the same pooled region.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dropout -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(239,68,68,0.15); color: var(--red);">&#x2718;</div>
+        <div>
+          <h3>Dropout</h3>
+          <div class="one-liner">Randomly silences neurons during training to prevent overfitting</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>During training, Dropout(p=0.5) randomly sets 50% of neuron outputs to zero each forward pass. This forces the network to not rely on any single neuron, building redundancy. During evaluation, all neurons are active (scaled to compensate).</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine a team where half the members randomly call in sick each day. The team learns to be resilient &mdash; no single person becomes a bottleneck, and everyone develops broader skills. On the day of the final presentation (evaluation), everyone shows up and the team performs at its best.</p>
+        </div>
+        <div class="math-box">
+          Training: randomly zero 50% of activations each batch<br>
+          Evaluation: use all activations, multiply by (1-p) to compensate<br>
+          model.train() enables dropout &nbsp;|&nbsp; model.eval() disables it
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>Applied on the FC layer (3136&rarr;128) where overfitting is most likely. Without Dropout, train accuracy hit ~99.5% but test stagnated &mdash; the model was memorizing, not generalizing.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CrossEntropyLoss -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(6,182,212,0.15); color: var(--accent3);">&#x2211;</div>
+        <div>
+          <h3>CrossEntropyLoss</h3>
+          <div class="one-liner">Measures how far the model's predicted probabilities are from the true label</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>CrossEntropyLoss combines LogSoftmax + NLLLoss in one step. It takes raw logits (unnormalized scores) and the true class label, then computes how "surprised" the model is by the correct answer. Lower loss = the model assigned high probability to the correct class.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine a student taking a multiple-choice test. If the student is 90% confident in the right answer, they barely get penalized. If they're only 10% confident, they get heavily penalized. CrossEntropy measures this "penalty for being wrong" &mdash; and the model trains to minimize it.</p>
+        </div>
+        <div class="math-box">
+          Loss = -log(p_correct)<br>
+          If model says P(correct class) = 0.9 &rarr; Loss = -log(0.9) = 0.105 (small)<br>
+          If model says P(correct class) = 0.1 &rarr; Loss = -log(0.1) = 2.302 (large)
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>The standard loss for multi-class classification. Our model outputs 10 raw logits &mdash; CrossEntropyLoss converts them to probabilities internally and computes the loss. That's why we don't add softmax in the model's forward() method.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Adam Optimizer -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(139,92,246,0.15); color: var(--accent2);">&#x2193;</div>
+        <div>
+          <h3>Adam Optimizer</h3>
+          <div class="one-liner">Adaptive learning rates per parameter &mdash; the go-to optimizer</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>Adam (Adaptive Moment Estimation) combines two ideas: <strong>momentum</strong> (smoothing gradient direction over time) and <strong>RMSprop</strong> (scaling learning rate per parameter based on gradient magnitude). Parameters with large gradients get smaller updates; parameters with small gradients get larger updates.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine hiking down a mountain in fog. Plain SGD takes equal-sized steps in whichever direction looks steepest right now. Adam is smarter: it remembers which direction it's been trending (momentum) and adjusts step size based on how rough the terrain is (adaptive rate). Smooth slope? Take bigger steps. Rocky terrain? Take careful small steps.</p>
+        </div>
+        <div class="math-box">
+          Adam = Momentum + RMSprop<br>
+          m_t = &beta;1 * m_(t-1) + (1-&beta;1) * gradient &nbsp;&nbsp;(direction)<br>
+          v_t = &beta;2 * v_(t-1) + (1-&beta;2) * gradient&sup2; &nbsp;&nbsp;(scale)<br>
+          update = lr * m_t / (&radic;v_t + &epsilon;)
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>Adam with lr=0.001 is the standard starting point for most deep learning tasks. It converges faster than plain SGD on MNIST because it adapts to each parameter's gradient landscape automatically.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Early Stopping -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(249,115,22,0.15); color: #f97316;">&#x23F9;</div>
+        <div>
+          <h3>Early Stopping</h3>
+          <div class="one-liner">Stop training when the model starts getting worse on unseen data</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>Monitor a validation metric (test accuracy or validation loss) each epoch. If it hasn't improved for <code>patience</code> consecutive epochs, stop training and revert to the best checkpoint. This prevents the model from overfitting by training too long.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine studying for an exam. At first, practice test scores improve. But after a while, you start memorizing specific practice questions rather than understanding concepts &mdash; your real exam score would actually drop. Early stopping is like a study buddy who says "you peaked 3 days ago, stop cramming and use that version of yourself."</p>
+        </div>
+        <div class="math-box">
+          Epoch 10: test_acc = 99.34% &larr; best so far, save checkpoint<br>
+          Epoch 11: test_acc = 99.30% &larr; patience count: 1<br>
+          Epoch 12: test_acc = 99.32% &larr; patience count: 2<br>
+          Epoch 13: test_acc = 99.31% &larr; patience count: 3 = patience &rarr; STOP<br>
+          Load checkpoint from epoch 10 (99.34%)
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>With patience=3, training stopped at epoch 13 instead of running all 20. The best model (epoch 10, 99.34%) was better than the final model &mdash; proving early stopping rescued us from overfitting.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backpropagation -->
+    <div class="concept">
+      <div class="concept-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="concept-icon" style="background: rgba(236,72,153,0.15); color: #ec4899;">&#x21A9;</div>
+        <div>
+          <h3>Backpropagation</h3>
+          <div class="one-liner">Computing gradients by applying the chain rule backwards through the network</div>
+        </div>
+        <div class="concept-toggle">&#x25BC;</div>
+      </div>
+      <div class="concept-body">
+        <p>After the forward pass computes the loss, backpropagation works <em>backwards</em> through every layer using the chain rule of calculus to compute how much each weight contributed to the error. These gradients then tell the optimizer which direction to adjust each weight.</p>
+        <div class="analogy">
+          <div class="analogy-label">Analogy</div>
+          <p>Imagine a factory assembly line that produces a defective product. To fix it, you trace backwards through each station asking "how much did YOUR step contribute to this defect?" That's backpropagation &mdash; assigning blame to each weight proportional to its contribution to the final error.</p>
+        </div>
+        <div class="math-box">
+          Forward: input &rarr; conv1 &rarr; relu &rarr; pool &rarr; conv2 &rarr; ... &rarr; loss<br>
+          Backward: loss &rarr; &part;loss/&part;fc &rarr; &part;loss/&part;conv2 &rarr; ... &rarr; &part;loss/&part;conv1<br>
+          <br>
+          In PyTorch: loss.backward() computes all gradients automatically
+        </div>
+        <div class="why-here">
+          <div class="why-label">Why in this project</div>
+          <p>This is the same backprop you implemented by hand in DLFS &mdash; but now PyTorch's autograd handles it. The <code>loss.backward()</code> + <code>optimizer.step()</code> + <code>optimizer.zero_grad()</code> trio is the core training loop pattern used in every PyTorch project.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lessons Learned -->
+  <div class="section" id="lessons">
+    <h2>Lessons Learned</h2>
+
+    <div class="lesson">
+      <div class="lesson-title">Conv &rarr; ReLU &rarr; MaxPool is the fundamental building block</div>
+      <div class="lesson-body">Understanding how each operation transforms the tensor shape (spatial dimensions halved by pool, channels set by filter count) is essential for designing any CNN.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">model.train() vs model.eval() matters</div>
+      <div class="lesson-body">Dropout behaves differently during training (randomly zeros neurons) vs evaluation (uses all neurons). Forgetting eval() leads to artificially lower test accuracy.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">optimizer.zero_grad() is needed every batch</div>
+      <div class="lesson-body">PyTorch accumulates gradients by default. Without zeroing, gradients from previous batches contaminate the current update &mdash; a common beginner bug.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Early Stopping + Checkpointing preserves the best model</div>
+      <div class="lesson-body">The model at epoch 10 (99.34%) was better than epoch 13 (99.31%). Without checkpointing, you'd keep the worse final model.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">Confusion Matrix reveals systematic weaknesses</div>
+      <div class="lesson-body">Raw accuracy (99.35%) hides that certain digit pairs (4&harr;9) are consistently confused. This diagnostic skill carries forward to every classification project.</div>
+    </div>
+
+    <div class="lesson">
+      <div class="lesson-title">padding=1 with kernel_size=3 preserves spatial dimensions</div>
+      <div class="lesson-body">Without padding, each conv layer shrinks the feature map. Padding=1 keeps the same H&times;W, making architecture design much simpler.</div>
+    </div>
+  </div>
+
+  <!-- What's Next -->
+  <div class="section" id="next">
+    <h2>What's Next</h2>
+    <div class="card">
+      <p style="color: var(--text2);">MNIST is "solved" &mdash; 99.35% with a simple 2-layer CNN. The real question: <strong style="color: var(--text);">can this architecture handle harder images?</strong></p>
+      <p style="color: var(--text2); margin-top: 8px;">CIFAR-10 (32&times;32 color images, 10 classes) will expose the limitations of shallow networks. Spoiler: the same approach hits a ceiling around 77%, motivating BatchNorm, LR scheduling, and eventually transfer learning.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Ryan's Deep Learning Portfolio &mdash; Project 1: MNIST CNN &mdash; Built with PyTorch
+</div>
+
+<script>
+// Scroll-spy: highlight active nav link
+const sections = document.querySelectorAll('.section[id]');
+const navLinks = document.querySelectorAll('.nav a');
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      navLinks.forEach(a => a.classList.remove('active'));
+      const link = document.querySelector(`.nav a[href="#${e.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
