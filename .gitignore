@@ -19,6 +19,8 @@ skills-lock.json
 # Internal docs
 **/docs/design.md
 **/docs/plan.md
+HANDOFF.md
+*.local.md
 
 # OS
 .DS_Store

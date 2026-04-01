@@ -1,5 +1,7 @@
 # 4. RNN Shakespeare — Character-Level Text Generation
 
+**Visual Summary**: [Open the browser-friendly project summary](https://immagodgivenmasterpiece.github.io/DL-Projects/4_RNN_Shakespeare/summary.html)
+
 ## Why RNNs?
 
 CNN projects handled **spatial patterns** in images — convolutions slide over 2D grids to detect edges, shapes, and objects. But what about **sequential data** where order matters?

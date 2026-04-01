@@ -2,6 +2,8 @@
 
 Classify **100 sports categories** using **ResNet18 pretrained on ImageNet**, demonstrating how Transfer Learning breaks through the scratch CNN ceiling.
 
+**Visual Summary**: [Open the browser-friendly project summary](https://immagodgivenmasterpiece.github.io/DL-Projects/3_Transfer_Learning/summary.html)
+
 ---
 
 ## Why Transfer Learning?
